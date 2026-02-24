@@ -14,6 +14,7 @@ import { usePathname } from "next/navigation";
 
 const routeLabels: Record<string, string> = {
   "": "Dashboard",
+  overview: "Dashboard",
   protocols: "Протоколи",
   new: "Нов протокол",
   invoices: "Фактури",
@@ -32,7 +33,7 @@ export function Header() {
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/">Dashboard</BreadcrumbLink>
+            <BreadcrumbLink href="/overview">Dashboard</BreadcrumbLink>
           </BreadcrumbItem>
           {segments.map((segment, index) => {
             const href = "/" + segments.slice(0, index + 1).join("/");

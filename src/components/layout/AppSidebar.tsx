@@ -25,7 +25,7 @@ import {
 const navItems = [
   {
     title: "Dashboard",
-    href: "/",
+    href: "/overview",
     icon: LayoutDashboard,
   },
   {
@@ -46,7 +46,7 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="border-b border-border px-6 py-4">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/overview" className="flex items-center gap-2">
           <Receipt className="h-6 w-6 text-primary" />
           <span className="text-lg font-semibold">Invoice Extractor</span>
         </Link>
@@ -60,11 +60,7 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild
-                    isActive={
-                      item.href === "/"
-                        ? pathname === "/"
-                        : pathname.startsWith(item.href)
-                    }
+                    isActive={pathname.startsWith(item.href)}
                   >
                     <Link href={item.href}>
                       <item.icon className="h-4 w-4" />
