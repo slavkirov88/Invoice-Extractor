@@ -12,7 +12,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const credits = await getUserCredits(supabase, user.id);
+  const credits = await getUserCredits(supabase, user.id, user.email ?? undefined);
 
   return NextResponse.json(credits);
 }

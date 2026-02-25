@@ -47,7 +47,7 @@ export default async function DashboardPage() {
       ?.filter((i) => i.section === "B")
       .reduce((sum, i) => sum + Number(i.amount), 0) || 0;
 
-  const credits = user ? await getUserCredits(supabase, user.id) : null;
+  const credits = user ? await getUserCredits(supabase, user.id, user.email ?? undefined) : null;
 
   const stats = [
     {

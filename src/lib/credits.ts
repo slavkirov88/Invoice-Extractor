@@ -1,5 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
+const ADMIN_EMAIL = "slavkirov@abv.bg";
+
 export interface UserCredits {
   plan: "free" | "professional" | "business";
   planName: string;
@@ -12,8 +14,22 @@ export interface UserCredits {
 
 export async function getUserCredits(
   supabase: SupabaseClient,
-  userId: string
+  userId: string,
+  email?: string
 ): Promise<UserCredits> {
+  // Admin always has unlimited access
+  if (email === ADMIN_EMAIL) {
+    return {
+      plan: "business",
+      planName: "Админ",
+      used: 0,
+      total: Infinity,
+      remaining: Infinity,
+      isUnlimited: true,
+      hasSubscription: true,
+    };
+  }
+
   // Check subscription
   const { data: subscription } = await supabase
     .from("subscriptions")
