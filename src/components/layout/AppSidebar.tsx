@@ -10,6 +10,9 @@ import {
   Settings,
   Receipt,
   Shield,
+  Sparkles,
+  BadgeCheck,
+  Zap,
 } from "lucide-react";
 import {
   Sidebar,
@@ -24,6 +27,7 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { createClient } from "@/lib/supabase/client";
+import type { UserCredits } from "@/lib/credits";
 
 const ADMIN_EMAIL = "slavkirov@abv.bg";
 
@@ -48,16 +52,28 @@ const navItems = [
 export function AppSidebar() {
   const pathname = usePathname();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [credits, setCredits] = useState<UserCredits | null>(null);
 
   useEffect(() => {
-    async function checkAdmin() {
+    async function init() {
       const supabase = createClient();
       const {
         data: { user },
       } = await supabase.auth.getUser();
       setIsAdmin(user?.email === ADMIN_EMAIL);
+
+      // Fetch credits
+      try {
+        const res = await fetch("/api/credits");
+        if (res.ok) {
+          const data = await res.json();
+          setCredits(data);
+        }
+      } catch {
+        // silently fail
+      }
     }
-    checkAdmin();
+    init();
   }, []);
 
   return (
@@ -90,7 +106,63 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="border-t border-border p-4">
+      <SidebarFooter className="border-t border-border p-4 space-y-3">
+        {/* Credits widget */}
+        {credits && (
+          <div className="rounded-lg border border-border bg-muted/50 p-3">
+            {credits.isUnlimited ? (
+              <div className="flex items-center gap-2">
+                <BadgeCheck className="h-4 w-4 text-green-400" />
+                <span className="text-sm font-medium text-green-400">
+                  {credits.planName}
+                </span>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-muted-foreground">
+                    Кредити
+                  </span>
+                  <span className="text-xs font-medium">
+                    {credits.remaining}/{credits.total}
+                  </span>
+                </div>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      credits.remaining === 0
+                        ? "bg-red-500"
+                        : credits.remaining <= 3
+                          ? "bg-yellow-500"
+                          : "bg-violet-500"
+                    }`}
+                    style={{
+                      width: `${(credits.remaining / credits.total) * 100}%`,
+                    }}
+                  />
+                </div>
+                {credits.remaining === 0 ? (
+                  <Link
+                    href="/settings"
+                    className="mt-2 flex items-center justify-center gap-1.5 rounded-md bg-violet-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-700 transition-colors"
+                  >
+                    <Zap className="h-3 w-3" />
+                    Upgrade
+                  </Link>
+                ) : (
+                  <Link
+                    href="/settings"
+                    className="mt-2 flex items-center justify-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    Upgrade за неограничен достъп
+                  </Link>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
         <SidebarMenu>
           {isAdmin && (
             <SidebarMenuItem>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { AlertCircle, Zap, Lock } from "lucide-react";
+import Link from "next/link";
+import type { UserCredits } from "@/lib/credits";
 
 interface ProtocolFormProps {
   onSuccess?: (id: string) => void;
@@ -26,6 +29,8 @@ interface ProtocolFormProps {
 
 export function ProtocolForm({ onSuccess }: ProtocolFormProps) {
   const [loading, setLoading] = useState(false);
+  const [credits, setCredits] = useState<UserCredits | null>(null);
+  const [creditsLoading, setCreditsLoading] = useState(true);
   const [formData, setFormData] = useState({
     supplier_name: "",
     supplier_vat_id: "",
@@ -39,9 +44,39 @@ export function ProtocolForm({ onSuccess }: ProtocolFormProps) {
 
   const supabase = createClient();
 
+  useEffect(() => {
+    async function fetchCredits() {
+      try {
+        const res = await fetch("/api/credits");
+        if (res.ok) setCredits(await res.json());
+      } catch {
+        // allow form on error
+      } finally {
+        setCreditsLoading(false);
+      }
+    }
+    fetchCredits();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // Re-check credits before submit
+    try {
+      const res = await fetch("/api/credits");
+      if (res.ok) {
+        const latest: UserCredits = await res.json();
+        if (!latest.isUnlimited && latest.remaining <= 0) {
+          toast.error("Нямате повече безплатни кредити.");
+          setCredits(latest);
+          setLoading(false);
+          return;
+        }
+      }
+    } catch {
+      // proceed on error
+    }
 
     const {
       data: { user },
@@ -82,10 +117,60 @@ export function ProtocolForm({ onSuccess }: ProtocolFormProps) {
     setLoading(false);
   };
 
+  if (creditsLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-12">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (credits && !credits.isUnlimited && credits.remaining <= 0) {
+    return (
+      <Card>
+        <CardContent className="py-12">
+          <div className="flex flex-col items-center text-center space-y-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10">
+              <Lock className="h-8 w-8 text-red-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold">Безплатните кредити свършиха</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Използвахте всичките {credits.total} безплатни протокола. Надградете плана си за неограничен достъп.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link
+                href="/settings"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-violet-700 transition-colors"
+              >
+                <Zap className="h-4 w-4" />
+                Upgrade на Professional — 50€/мес.
+              </Link>
+            </div>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" />
+              Съществуващите протоколи и фактури остават достъпни
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Данни на протокола</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>Данни на протокола</CardTitle>
+          {credits && !credits.isUnlimited && (
+            <span className="text-xs text-muted-foreground">
+              {credits.remaining}/{credits.total} кредита
+            </span>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
