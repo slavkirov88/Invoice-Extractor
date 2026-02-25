@@ -87,3 +87,28 @@ CREATE TRIGGER update_protocols_updated_at
 CREATE INDEX idx_protocols_user_id ON protocols(user_id);
 CREATE INDEX idx_invoices_protocol_id ON invoices(protocol_id);
 CREATE INDEX idx_invoices_user_id ON invoices(user_id);
+
+-- Subscriptions table
+CREATE TABLE IF NOT EXISTS subscriptions (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  stripe_subscription_id TEXT,
+  stripe_customer_id TEXT,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('trialing', 'active', 'past_due', 'canceled')),
+  plan TEXT NOT NULL DEFAULT 'professional' CHECK (plan IN ('professional', 'business')),
+  current_period_end TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS for subscriptions
+ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+
+-- Users can view their own subscription
+CREATE POLICY "Users can view own subscription"
+  ON subscriptions FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Service role has full access (for webhooks and admin API)
+-- Note: service_role key bypasses RLS by default
+
+CREATE INDEX idx_subscriptions_status ON subscriptions(status);

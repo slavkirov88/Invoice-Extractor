@@ -44,3 +44,14 @@ export interface VatCalculation {
   taxRate: number;
   vatAmount: number;
 }
+
+export interface Subscription {
+  user_id: string;
+  stripe_subscription_id: string | null;
+  stripe_customer_id: string | null;
+  status: "trialing" | "active" | "past_due" | "canceled";
+  plan: "professional" | "business";
+  current_period_end: string | null;
+  created_at: string;
+  updated_at: string;
+}

@@ -20,6 +20,7 @@ const routeLabels: Record<string, string> = {
   invoices: "Фактури",
   add: "Добави фактура",
   settings: "Настройки",
+  admin: "Админ",
 };
 
 export function Header() {
