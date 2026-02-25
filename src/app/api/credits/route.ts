@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUserCredits } from "@/lib/credits";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const supabase = await createClient();
   const {
@@ -14,5 +16,7 @@ export async function GET() {
 
   const credits = await getUserCredits(supabase, user.id, user.email ?? undefined);
 
-  return NextResponse.json(credits);
+  return NextResponse.json(credits, {
+    headers: { "Cache-Control": "no-store" },
+  });
 }
