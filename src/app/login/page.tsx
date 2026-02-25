@@ -19,6 +19,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
@@ -27,6 +28,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setMessage("");
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -37,7 +39,7 @@ export default function LoginPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      router.push("/");
+      router.push("/overview");
       router.refresh();
     }
   };
@@ -45,6 +47,7 @@ export default function LoginPage() {
   const handleSignUp = async () => {
     setLoading(true);
     setError("");
+    setMessage("");
 
     const { error } = await supabase.auth.signUp({
       email,
@@ -54,8 +57,28 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
     } else {
-      setError("");
-      alert("Проверете имейла си за потвърждение на регистрацията.");
+      setMessage("Проверете имейла си за потвърждение на регистрацията.");
+    }
+    setLoading(false);
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError("Въведете имейл адрес първо.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    setMessage("");
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+    });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      setMessage("Изпратихме линк за смяна на паролата на имейла ви.");
     }
     setLoading(false);
   };
@@ -67,7 +90,7 @@ export default function LoginPage() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
             <Receipt className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Invoice Extractor</CardTitle>
+          <CardTitle className="text-2xl">TravelInvoices</CardTitle>
           <CardDescription>
             Управление на фактури и протоколи
           </CardDescription>
@@ -86,7 +109,16 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Парола</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Парола</Label>
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Забравена парола?
+                </button>
+              </div>
               <Input
                 id="password"
                 type="password"
@@ -98,6 +130,9 @@ export default function LoginPage() {
             </div>
             {error && (
               <p className="text-sm text-destructive">{error}</p>
+            )}
+            {message && (
+              <p className="text-sm text-green-500">{message}</p>
             )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Зареждане..." : "Вход"}
