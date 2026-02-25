@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { AlertCircle, Zap, Lock } from "lucide-react";
+import { AlertCircle, Zap } from "lucide-react";
 import Link from "next/link";
 import type { UserCredits } from "@/lib/credits";
 
@@ -62,13 +62,13 @@ export function ProtocolForm({ onSuccess }: ProtocolFormProps) {
     e.preventDefault();
     setLoading(true);
 
-    // Re-check credits before submit
+    // Re-check subscription before submit
     try {
       const res = await fetch("/api/credits");
       if (res.ok) {
         const latest: UserCredits = await res.json();
-        if (!latest.isUnlimited && latest.remaining <= 0) {
-          toast.error("Нямате повече безплатни кредити.");
+        if (!latest.isUnlimited) {
+          toast.error("Нямате активен абонамент. Започнете безплатен тест.");
           setCredits(latest);
           setLoading(false);
           return;
@@ -127,29 +127,28 @@ export function ProtocolForm({ onSuccess }: ProtocolFormProps) {
     );
   }
 
-  if (credits && !credits.isUnlimited && credits.remaining <= 0) {
+  if (credits && !credits.isUnlimited) {
     return (
       <Card>
         <CardContent className="py-12">
           <div className="flex flex-col items-center text-center space-y-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10">
-              <Lock className="h-8 w-8 text-red-400" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-violet-500/10">
+              <Zap className="h-8 w-8 text-violet-400" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold">Безплатните кредити свършиха</h3>
+              <h3 className="text-lg font-semibold">Започнете безплатен тест</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Използвахте всичките {credits.total} безплатни протокола. Надградете плана си за неограничен достъп.
+                За да създавате протоколи, започнете 7-дневен безплатен тестов период.
+                Не ви таксуваме през първите 7 дни.
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Link
-                href="/settings"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-violet-700 transition-colors"
-              >
-                <Zap className="h-4 w-4" />
-                Upgrade на Professional — 50€/мес.
-              </Link>
-            </div>
+            <Link
+              href="/settings"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-8 py-3 text-sm font-medium text-white hover:bg-violet-700 transition-colors"
+            >
+              <Zap className="h-4 w-4" />
+              Започни 7-дневен безплатен тест
+            </Link>
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <AlertCircle className="h-3 w-3" />
               Съществуващите протоколи и фактури остават достъпни
@@ -163,14 +162,7 @@ export function ProtocolForm({ onSuccess }: ProtocolFormProps) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Данни на протокола</CardTitle>
-          {credits && !credits.isUnlimited && (
-            <span className="text-xs text-muted-foreground">
-              {credits.remaining}/{credits.total} кредита
-            </span>
-          )}
-        </div>
+        <CardTitle>Данни на протокола</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">

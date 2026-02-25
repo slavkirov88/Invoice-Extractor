@@ -10,7 +10,6 @@ import {
   Settings,
   Receipt,
   Shield,
-  Sparkles,
   BadgeCheck,
   Zap,
 } from "lucide-react";
@@ -107,7 +106,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t border-border p-4 space-y-3">
-        {/* Credits widget */}
+        {/* Subscription widget */}
         {credits && (
           <div className="rounded-lg border border-border bg-muted/50 p-3">
             {credits.isUnlimited ? (
@@ -118,47 +117,13 @@ export function AppSidebar() {
                 </span>
               </div>
             ) : (
-              <>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-muted-foreground">
-                    Кредити
-                  </span>
-                  <span className="text-xs font-medium">
-                    {credits.remaining}/{credits.total}
-                  </span>
-                </div>
-                <div className="h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${
-                      credits.remaining === 0
-                        ? "bg-red-500"
-                        : credits.remaining <= 3
-                          ? "bg-yellow-500"
-                          : "bg-violet-500"
-                    }`}
-                    style={{
-                      width: `${(credits.remaining / credits.total) * 100}%`,
-                    }}
-                  />
-                </div>
-                {credits.remaining === 0 ? (
-                  <Link
-                    href="/settings"
-                    className="mt-2 flex items-center justify-center gap-1.5 rounded-md bg-violet-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-700 transition-colors"
-                  >
-                    <Zap className="h-3 w-3" />
-                    Upgrade
-                  </Link>
-                ) : (
-                  <Link
-                    href="/settings"
-                    className="mt-2 flex items-center justify-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <Sparkles className="h-3 w-3" />
-                    Upgrade за неограничен достъп
-                  </Link>
-                )}
-              </>
+              <Link
+                href="/settings"
+                className="flex items-center justify-center gap-1.5 rounded-md bg-violet-600 px-3 py-2 text-xs font-medium text-white hover:bg-violet-700 transition-colors"
+              >
+                <Zap className="h-3 w-3" />
+                Започни безплатен тест
+              </Link>
             )}
           </div>
         )}

@@ -191,7 +191,7 @@ function HeroSection() {
           className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-1.5 text-sm text-violet-300 mb-8"
         >
           <Sparkles className="h-4 w-4" />
-          <span>Безплатен тестов период — 1 месец</span>
+          <span>7 дни безплатен тест</span>
         </motion.div>
 
         {/* Main heading */}
@@ -201,9 +201,9 @@ function HeroSection() {
           transition={{ delay: 0.3, duration: 0.6 }}
           className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-6"
         >
-          Управлявайте фактури
+          Автоматизирай фактурирането
           <br />
-          и протоколи{" "}
+          на твоята туристическа агенция{" "}
           <span className="relative inline-block">
             <AnimatePresence mode="wait">
               <motion.span
@@ -245,7 +245,7 @@ function HeroSection() {
             href="#pricing"
             className="group inline-flex items-center gap-2 rounded-xl bg-violet-600 px-8 py-4 text-lg font-semibold text-white hover:bg-violet-700 transition-all shadow-2xl shadow-violet-600/25 hover:shadow-violet-600/40 hover:scale-[1.02]"
           >
-            Започни безплатно за 1 месец
+            Започни 7-дневен безплатен тест
             <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
           </Link>
           <a
@@ -266,15 +266,15 @@ function HeroSection() {
         >
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-            Не изисква кредитна карта
+            7 дни безплатно
           </span>
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-            До 10 протокола безплатно
+            Откажи се по всяко време с 1 клик
           </span>
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-            Лесен отказ по всяко време
+            После от 50€/месец
           </span>
         </motion.div>
 
@@ -732,27 +732,11 @@ function BeforeAfterSection() {
 function PricingSection() {
   const plans = [
     {
-      name: "Безплатен",
-      price: "0",
-      period: "за 1 месец",
-      description: "Пробвайте без риск. Без кредитна карта.",
-      features: [
-        "До 10 протокола",
-        "До 20 фактури",
-        "AI извличане от PDF",
-        "Автоматични ДДС изчисления",
-        "Експорт в Excel и PDF",
-        "Email поддръжка",
-      ],
-      cta: "Започни безплатно",
-      popular: false,
-      gradient: false,
-    },
-    {
       name: "Професионален",
       price: "50",
       period: "/месец",
       description: "За средни агенции. Всичко необходимо.",
+      trial: "7 дни безплатно",
       features: [
         "До 500 фактури/месец",
         "Неограничени протоколи",
@@ -762,7 +746,7 @@ function PricingSection() {
         "Приоритетна поддръжка",
         "Историческа справка",
       ],
-      cta: "Избери Професионален",
+      cta: "Започни безплатен тест",
       popular: true,
       gradient: true,
     },
@@ -771,6 +755,7 @@ function PricingSection() {
       price: "100",
       period: "/месец",
       description: "За големи агенции. Неограничен обем.",
+      trial: "7 дни безплатно",
       features: [
         "Неограничени фактури",
         "Неограничени протоколи",
@@ -782,7 +767,7 @@ function PricingSection() {
         "API достъп",
         "Множество потребители",
       ],
-      cta: "Избери Бизнес",
+      cta: "Започни безплатен тест",
       popular: false,
       gradient: false,
     },
@@ -800,13 +785,13 @@ function PricingSection() {
               Прости и прозрачни цени
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Започнете безплатно. Надградете когато сте готови.
-              Откажете се по всяко време — без обвързване.
+              Тествайте 7 дни безплатно. Не ви таксуваме през първите 7 дни.
+              Откажете се по всяко време с 1 клик — без обвързване.
             </p>
           </div>
         </ScrollReveal>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {plans.map((plan, i) => (
             <ScrollReveal key={i} delay={i * 0.15}>
               <div
@@ -830,10 +815,17 @@ function PricingSection() {
                   <p className="text-sm text-muted-foreground">{plan.description}</p>
                 </div>
 
-                <div className="mb-8">
+                <div className="mb-2">
                   <span className="text-5xl font-bold">{plan.price}</span>
                   <span className="text-lg text-muted-foreground ml-1">
                     €{plan.period}
+                  </span>
+                </div>
+
+                <div className="mb-8">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 text-xs font-medium text-emerald-400">
+                    <CheckCircle2 className="h-3 w-3" />
+                    {plan.trial}
                   </span>
                 </div>
 
@@ -956,7 +948,7 @@ function FAQSection() {
   const faqs = [
     {
       q: "Какво включва безплатният тестов период?",
-      a: "Получавате пълен достъп до всички функции за 1 месец — до 10 протокола и 20 фактури. Не се изисква кредитна карта. Ако решите да продължите, просто изберете план.",
+      a: "Получавате пълен достъп до всички функции за 7 дни. Въвеждате картата си при регистрация, но не ви таксуваме през първите 7 дни. Ако решите да не продължавате — откажете се с 1 клик от настройките на акаунта. Ако не направите нищо, абонаментът продължава автоматично.",
     },
     {
       q: "Как се извличат данните от фактурите?",
@@ -972,7 +964,7 @@ function FAQSection() {
     },
     {
       q: "Мога ли да се откажа по всяко време?",
-      a: "Да. Няма дългосрочни договори. Можете да отмените абонамента си с едно кликване по всяко време. Данните ви остават достъпни до края на платения период.",
+      a: "Да. Няма дългосрочни договори. От настройките на акаунта натискате \"Управлявай абонамент\" и се отказвате с 1 клик. Данните ви остават достъпни до края на платения период.",
     },
     {
       q: "В какви формати мога да експортирам?",
@@ -1069,19 +1061,19 @@ function CTASection() {
               </h2>
               <p className="text-lg text-white/80 max-w-2xl mx-auto mb-10">
                 Присъединете се към туристическите агенции, които вече управляват
-                фактурите си автоматично. Започнете безплатно — без кредитна карта.
+                фактурите си автоматично. Тествайте 7 дни безплатно.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
                   href="/login"
                   className="group inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-lg font-semibold text-violet-700 hover:bg-white/90 transition-all shadow-2xl hover:scale-[1.02]"
                 >
-                  Започни безплатно за 1 месец
+                  Започни 7-дневен безплатен тест
                   <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>
               <p className="mt-6 text-sm text-white/60">
-                Без кредитна карта &middot; До 10 протокола &middot; Лесен отказ
+                7 дни безплатно &middot; Откажете се по всяко време &middot; После от 50€/мес
               </p>
             </div>
           </div>

@@ -20,6 +20,9 @@ import {
   User,
   Crown,
   Loader2,
+  ExternalLink,
+  ArrowRight,
+  CheckCircle2,
 } from "lucide-react";
 import type { UserCredits } from "@/lib/credits";
 
@@ -27,7 +30,8 @@ export default function SettingsPage() {
   const [credits, setCredits] = useState<UserCredits | null>(null);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(true);
-  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -49,15 +53,12 @@ export default function SettingsPage() {
     init();
   }, [supabase]);
 
-  const handleCheckout = async (plan: "professional" | "business") => {
-    setCheckoutLoading(plan);
+  const handleStartTrial = async () => {
+    setCheckoutLoading(true);
     try {
       const priceId =
-        plan === "professional"
-          ? process.env.NEXT_PUBLIC_STRIPE_PROFESSIONAL_PRICE_ID ||
-            "price_1T4cIzRt9H8Dfn2r2sdoikbP"
-          : process.env.NEXT_PUBLIC_STRIPE_BUSINESS_PRICE_ID ||
-            "price_1T4cJ2Rt9H8Dfn2rUVFD9FRr";
+        process.env.NEXT_PUBLIC_STRIPE_PROFESSIONAL_PRICE_ID ||
+        "price_1T4cIzRt9H8Dfn2r2sdoikbP";
 
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
@@ -72,7 +73,25 @@ export default function SettingsPage() {
     } catch {
       // silently fail
     } finally {
-      setCheckoutLoading(null);
+      setCheckoutLoading(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    setPortalLoading(true);
+    try {
+      const res = await fetch("/api/stripe/portal", {
+        method: "POST",
+      });
+
+      if (res.ok) {
+        const { url } = await res.json();
+        if (url) window.location.href = url;
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setPortalLoading(false);
     }
   };
 
@@ -108,10 +127,10 @@ export default function SettingsPage() {
             <CreditCard className="h-5 w-5" />
             Абонамент
           </CardTitle>
-          <CardDescription>Текущ план и кредити</CardDescription>
+          <CardDescription>Текущ план</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Current plan */}
+          {/* Current plan display */}
           <div className="flex items-center justify-between rounded-lg border border-border p-4">
             <div className="flex items-center gap-3">
               {credits?.isUnlimited ? (
@@ -125,12 +144,14 @@ export default function SettingsPage() {
               )}
               <div>
                 <div className="font-medium">
-                  {credits?.planName || "Безплатен"}
+                  {credits?.isUnlimited
+                    ? credits.planName
+                    : "Няма активен абонамент"}
                 </div>
                 <div className="text-sm text-muted-foreground">
                   {credits?.isUnlimited
                     ? "Неограничен достъп"
-                    : `${credits?.remaining ?? 0}/${credits?.total ?? 10} кредита остават`}
+                    : "Започнете безплатен тест за пълен достъп"}
                 </div>
               </div>
             </div>
@@ -139,91 +160,61 @@ export default function SettingsPage() {
             )}
           </div>
 
-          {/* Credits progress bar (free plan only) */}
-          {credits && !credits.isUnlimited && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">
-                  Използвани кредити
-                </span>
-                <span className="text-sm font-medium">
-                  {credits.used}/{credits.total}
-                </span>
-              </div>
-              <div className="h-3 rounded-full bg-muted overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    credits.remaining === 0
-                      ? "bg-red-500"
-                      : credits.remaining <= 3
-                        ? "bg-yellow-500"
-                        : "bg-violet-500"
-                  }`}
-                  style={{
-                    width: `${(credits.used / credits.total) * 100}%`,
-                  }}
-                />
-              </div>
-            </div>
+          {/* Manage subscription button (for paid users) */}
+          {credits?.hasSubscription && (
+            <Button
+              className="w-full text-base py-6 bg-violet-600 hover:bg-violet-700"
+              onClick={handleManageSubscription}
+              disabled={portalLoading}
+            >
+              {portalLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+              ) : (
+                <ExternalLink className="h-5 w-5 mr-2" />
+              )}
+              Управлявай абонамент
+            </Button>
           )}
 
-          {/* Upgrade options (free plan only) */}
-          {credits && !credits.isUnlimited && (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-xl border-2 border-violet-500 p-5 relative">
-                <div className="absolute -top-3 left-4">
-                  <span className="rounded-full bg-violet-600 px-3 py-0.5 text-xs font-medium text-white">
-                    Препоръчан
-                  </span>
-                </div>
-                <h3 className="text-lg font-semibold mt-1">Професионален</h3>
-                <div className="mt-1">
-                  <span className="text-3xl font-bold">50€</span>
-                  <span className="text-muted-foreground">/месец</span>
-                </div>
-                <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
-                  <li>До 500 фактури/месец</li>
-                  <li>Неограничени протоколи</li>
-                  <li>Приоритетна поддръжка</li>
-                </ul>
-                <Button
-                  className="w-full mt-4 bg-violet-600 hover:bg-violet-700"
-                  onClick={() => handleCheckout("professional")}
-                  disabled={checkoutLoading !== null}
-                >
-                  {checkoutLoading === "professional" ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Zap className="h-4 w-4 mr-2" />
-                  )}
-                  Избери Professional
-                </Button>
+          {/* Start trial CTA (for free users) */}
+          {credits && !credits.hasSubscription && (
+            <div className="rounded-xl border-2 border-violet-500/40 bg-violet-500/5 p-6 text-center space-y-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-violet-500/10 border border-violet-500/30 mx-auto">
+                <Zap className="h-7 w-7 text-violet-400" />
               </div>
-
-              <div className="rounded-xl border border-border p-5">
-                <h3 className="text-lg font-semibold">Бизнес</h3>
-                <div className="mt-1">
-                  <span className="text-3xl font-bold">100€</span>
-                  <span className="text-muted-foreground">/месец</span>
-                </div>
-                <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
-                  <li>Неограничени фактури</li>
-                  <li>Неограничени протоколи</li>
-                  <li>VIP поддръжка + API достъп</li>
-                </ul>
-                <Button
-                  variant="outline"
-                  className="w-full mt-4"
-                  onClick={() => handleCheckout("business")}
-                  disabled={checkoutLoading !== null}
-                >
-                  {checkoutLoading === "business" ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Zap className="h-4 w-4 mr-2" />
-                  )}
-                  Избери Business
-                </Button>
+              <div>
+                <h3 className="text-lg font-semibold">
+                  Започнете 7-дневен безплатен тест
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Въведете картата си и получете пълен достъп. Не ви таксуваме 7 дни.
+                </p>
+              </div>
+              <Button
+                className="w-full text-base py-6 bg-violet-600 hover:bg-violet-700"
+                onClick={handleStartTrial}
+                disabled={checkoutLoading}
+              >
+                {checkoutLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                ) : (
+                  <ArrowRight className="h-5 w-5 mr-2" />
+                )}
+                Започни безплатен тест
+              </Button>
+              <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                  7 дни безплатно
+                </span>
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                  После 50€/мес
+                </span>
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                  Лесен отказ
+                </span>
               </div>
             </div>
           )}

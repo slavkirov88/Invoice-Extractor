@@ -14,10 +14,9 @@ import {
   Receipt,
   TrendingUp,
   Calculator,
-  Sparkles,
   BadgeCheck,
 } from "lucide-react";
-import Link from "next/link";
+import { TrialCTA } from "@/components/dashboard/TrialCTA";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -86,46 +85,23 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {/* Credits card */}
-      {credits && (
-        <Card
-          className={
-            credits.isUnlimited
-              ? "border-green-500/30 bg-green-500/5"
-              : credits.remaining === 0
-                ? "border-red-500/30 bg-red-500/5"
-                : "border-violet-500/30 bg-violet-500/5"
-          }
-        >
+      {/* Trial CTA or subscription badge */}
+      {credits && !credits.hasSubscription && <TrialCTA />}
+
+      {credits && credits.isUnlimited && (
+        <Card className="border-green-500/30 bg-green-500/5">
           <CardContent className="flex items-center justify-between py-4">
             <div className="flex items-center gap-3">
-              {credits.isUnlimited ? (
-                <BadgeCheck className="h-8 w-8 text-green-400" />
-              ) : (
-                <Sparkles className="h-8 w-8 text-violet-400" />
-              )}
+              <BadgeCheck className="h-8 w-8 text-green-400" />
               <div>
                 <div className="font-semibold">
-                  {credits.isUnlimited
-                    ? `${credits.planName} — Неограничен достъп`
-                    : `${credits.remaining} от ${credits.total} кредита остават`}
+                  {credits.planName} — Неограничен достъп
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  {credits.isUnlimited
-                    ? "Създавайте неограничен брой протоколи"
-                    : "Всеки нов протокол използва 1 кредит"}
+                  Създавайте неограничен брой протоколи
                 </div>
               </div>
             </div>
-            {!credits.isUnlimited && (
-              <Link
-                href="/settings"
-                className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700 transition-colors"
-              >
-                <Sparkles className="h-4 w-4" />
-                Upgrade
-              </Link>
-            )}
           </CardContent>
         </Card>
       )}

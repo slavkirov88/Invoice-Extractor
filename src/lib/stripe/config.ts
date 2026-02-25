@@ -13,7 +13,7 @@ export const PLANS = {
       protocols: 10,
       invoices: 20,
     },
-    trialDays: 30,
+    trialDays: 7,
   },
   professional: {
     name: "Професионален",
@@ -22,7 +22,7 @@ export const PLANS = {
       protocols: Infinity,
       invoices: 500,
     },
-    trialDays: 30,
+    trialDays: 7,
   },
   business: {
     name: "Бизнес",
@@ -31,6 +31,6 @@ export const PLANS = {
       protocols: Infinity,
       invoices: Infinity,
     },
-    trialDays: 30,
+    trialDays: 7,
   },
 } as const;

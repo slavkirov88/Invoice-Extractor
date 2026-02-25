@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: {
-        trial_period_days: 30,
+        trial_period_days: 7,
         metadata: { userId: user.id },
       },
       customer_email: user.email,

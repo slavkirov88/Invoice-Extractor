@@ -34,13 +34,24 @@ export async function POST(request: NextRequest) {
       const session = event.data.object;
       const userId = session.metadata?.userId;
       if (userId && session.subscription) {
+        // Determine plan from the price
+        const sub = await stripe.subscriptions.retrieve(
+          session.subscription as string
+        );
+        const priceId = sub.items.data[0]?.price?.id;
+        const plan =
+          priceId === process.env.STRIPE_BUSINESS_PRICE_ID
+            ? "business"
+            : "professional";
+
         await supabase.from("subscriptions").upsert({
           user_id: userId,
           stripe_subscription_id: session.subscription,
           stripe_customer_id: session.customer,
           status: "trialing",
+          plan,
           current_period_end: new Date(
-            Date.now() + 30 * 24 * 60 * 60 * 1000
+            Date.now() + 7 * 24 * 60 * 60 * 1000
           ).toISOString(),
         });
       }

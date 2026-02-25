@@ -1,7 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
-const FREE_PROTOCOL_LIMIT = 10;
-
 export interface UserCredits {
   plan: "free" | "professional" | "business";
   planName: string;
@@ -9,6 +7,7 @@ export interface UserCredits {
   total: number;
   remaining: number;
   isUnlimited: boolean;
+  hasSubscription: boolean;
 }
 
 export async function getUserCredits(
@@ -35,24 +34,18 @@ export async function getUserCredits(
       total: Infinity,
       remaining: Infinity,
       isUnlimited: true,
+      hasSubscription: true,
     };
   }
 
-  // Free plan — count protocols
-  const { count } = await supabase
-    .from("protocols")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", userId);
-
-  const used = count || 0;
-  const remaining = Math.max(0, FREE_PROTOCOL_LIMIT - used);
-
+  // Free plan — no credits, must start trial
   return {
     plan: "free",
     planName: "Безплатен",
-    used,
-    total: FREE_PROTOCOL_LIMIT,
-    remaining,
+    used: 0,
+    total: 0,
+    remaining: 0,
     isUnlimited: false,
+    hasSubscription: false,
   };
 }
