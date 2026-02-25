@@ -26,7 +26,6 @@ import {
   Download,
   CreditCard,
   BadgeCheck,
-  Users,
   TrendingDown,
 } from "lucide-react";
 import { ScrollReveal } from "./ScrollReveal";
@@ -847,15 +846,16 @@ function PricingSection() {
                   ))}
                 </ul>
 
-                <button
-                  className={`w-full rounded-xl py-3 text-sm font-semibold transition-all ${
+                <a
+                  href="/login"
+                  className={`block w-full rounded-xl py-3 text-sm font-semibold text-center transition-all ${
                     plan.popular
                       ? "bg-violet-600 text-white hover:bg-violet-700 shadow-lg shadow-violet-600/25"
                       : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                   }`}
                 >
                   {plan.cta}
-                </button>
+                </a>
               </div>
             </ScrollReveal>
           ))}
