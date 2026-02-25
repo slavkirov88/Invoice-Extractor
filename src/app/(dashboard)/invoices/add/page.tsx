@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDropzone } from "react-dropzone";
 import { createClient } from "@/lib/supabase/client";
-import { extractInvoiceData } from "@/lib/mistral/extract-invoice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,9 +86,19 @@ function AddInvoiceContent() {
     setStep("extracting");
 
     try {
-      const buffer = await file.arrayBuffer();
-      const base64 = Buffer.from(buffer).toString("base64");
-      const data = await extractInvoiceData(base64);
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/extract-invoice", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Грешка при извличане на данни");
+      }
 
       setExtractedData(data);
       setEditableData({
