@@ -82,7 +82,7 @@ export function ExcelExport({
       "№ на документа",
       "Дата на издаване",
       "ИД на контрагента",
-      "Стойност лв.",
+      "Стойност EUR",
     ];
     headers.forEach((h, i) => {
       ws.getCell(`${headerCells[i]}${row}`).value = h;

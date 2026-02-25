@@ -57,7 +57,7 @@ function InvoiceTable({
                 <TableHead>№ на документа</TableHead>
                 <TableHead>Дата на издаване</TableHead>
                 <TableHead>ИД на контрагента</TableHead>
-                <TableHead className="text-right">Стойност лв.</TableHead>
+                <TableHead className="text-right">Стойност EUR</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

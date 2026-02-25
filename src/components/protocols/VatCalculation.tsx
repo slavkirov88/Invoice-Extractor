@@ -30,7 +30,7 @@ export function VatCalculation({
             1. Марж в цената
           </span>
           <span className="font-mono font-medium">
-            {vat.margin.toFixed(2)} лв.
+            {vat.margin.toFixed(2)} €
           </span>
         </div>
         <Separator />
@@ -39,7 +39,7 @@ export function VatCalculation({
             2. Данъчна основа (р.1 / (100 + р.3) * 100)
           </span>
           <span className="font-mono font-medium">
-            {vat.taxBase.toFixed(2)} лв.
+            {vat.taxBase.toFixed(2)} €
           </span>
         </div>
         <Separator />
@@ -53,7 +53,7 @@ export function VatCalculation({
             4. Данък добавена стойност (р.2 * р.3 / 100)
           </span>
           <span className="font-mono font-bold text-primary">
-            {vat.vatAmount.toFixed(3)} лв.
+            {vat.vatAmount.toFixed(3)} €
           </span>
         </div>
       </CardContent>

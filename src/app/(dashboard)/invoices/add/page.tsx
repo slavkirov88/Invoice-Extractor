@@ -296,7 +296,7 @@ function AddInvoiceContent() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Стойност (лв.)</Label>
+                  <Label>Стойност (EUR)</Label>
                   <Input
                     type="number"
                     step="0.01"

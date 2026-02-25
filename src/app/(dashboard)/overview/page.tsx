@@ -64,13 +64,13 @@ export default async function DashboardPage() {
     },
     {
       title: "Получени суми",
-      value: `${totalReceived.toFixed(2)} лв.`,
+      value: `${totalReceived.toFixed(2)} €`,
       icon: TrendingUp,
       description: "Общо получени (Раздел А)",
     },
     {
       title: "Платени суми",
-      value: `${totalPaid.toFixed(2)} лв.`,
+      value: `${totalPaid.toFixed(2)} €`,
       icon: Calculator,
       description: "Общо платени (Раздел Б)",
     },

@@ -86,10 +86,10 @@ export function ProtocolList({
                   {format(new Date(protocol.creation_date), "dd.MM.yyyy")}
                 </TableCell>
                 <TableCell className="text-right">
-                  {received.toFixed(2)} лв.
+                  {received.toFixed(2)} €
                 </TableCell>
                 <TableCell className="text-right">
-                  {paid.toFixed(2)} лв.
+                  {paid.toFixed(2)} €
                 </TableCell>
                 <TableCell className="text-right">
                   {protocol.invoices.length}
