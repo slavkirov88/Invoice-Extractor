@@ -56,7 +56,7 @@ export function PdfExport({
 
     autoTable(doc, {
       startY: 58,
-      head: [["No", "Dokument", "No dok.", "Data", "Stoynost lv."]],
+      head: [["No", "Dokument", "No dok.", "Data", "Stoynost EUR"]],
       body: [
         ...sectionA.map((inv) => [
           inv.sequence_number,
@@ -86,7 +86,7 @@ export function PdfExport({
 
     autoTable(doc, {
       startY: finalY + 14,
-      head: [["No", "Dokument", "No dok.", "Data", "Stoynost lv."]],
+      head: [["No", "Dokument", "No dok.", "Data", "Stoynost EUR"]],
       body: [
         ...sectionB.map((inv) => [
           inv.sequence_number,
@@ -107,15 +107,15 @@ export function PdfExport({
 
     doc.text("Razdel V. DDS Izchislenie", 14, finalY2 + 10);
     doc.setFontSize(10);
-    doc.text(`1. Marzh: ${vat.margin.toFixed(2)} lv.`, 14, finalY2 + 18);
+    doc.text(`1. Marzh: ${vat.margin.toFixed(2)} EUR`, 14, finalY2 + 18);
     doc.text(
-      `2. Danachna osnova: ${vat.taxBase.toFixed(2)} lv.`,
+      `2. Danachna osnova: ${vat.taxBase.toFixed(2)} EUR`,
       14,
       finalY2 + 24
     );
     doc.text(`3. Danachna stavka: ${vat.taxRate}%`, 14, finalY2 + 30);
     doc.text(
-      `4. DDS: ${vat.vatAmount.toFixed(3)} lv.`,
+      `4. DDS: ${vat.vatAmount.toFixed(3)} EUR`,
       14,
       finalY2 + 36
     );

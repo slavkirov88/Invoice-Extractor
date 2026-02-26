@@ -36,7 +36,7 @@ const rotatingWords = [
   "по-бързо",
   "по-точно",
   "по-евтино",
-  "автоматично",
+  "без усилие",
 ];
 
 function Navbar() {
@@ -338,16 +338,16 @@ function HeroSection() {
                       ["001", "Хотел Парадайз", "15.02.2026", "2,400 €", "Стандартен"],
                       ["002", "Транс Лукс ООД", "18.02.2026", "1,850 €", "Стандартен"],
                       ["003", "Ski Tours BG", "20.02.2026", "3,200 €", "Комисионен"],
-                    ].map((row, i) => (
-                      <>{row.map((cell, j) => (
+                    ].map((row, i) =>
+                      row.map((cell, j) => (
                         <div
                           key={`${i}-${j}`}
                           className={`px-3 py-2.5 ${i < 2 ? "border-b border-border/30" : ""}`}
                         >
                           {cell}
                         </div>
-                      ))}</>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
@@ -397,10 +397,10 @@ function StatsBar() {
           <ScrollReveal delay={0.3}>
             <div>
               <div className="text-3xl sm:text-4xl font-bold text-violet-400">
-                <AnimatedCounter end={100} suffix="%" />
+                ЗДДС
               </div>
               <div className="text-sm text-muted-foreground mt-1">
-                съвместим с НАП
+                съобразен с маржов метод
               </div>
             </div>
           </ScrollReveal>
@@ -875,75 +875,6 @@ function PricingSection() {
   );
 }
 
-function TestimonialsSection() {
-  const testimonials = [
-    {
-      quote:
-        "Преди губех по цял ден за протоколите. Сега качвам фактурите и всичко е готово за минути. Невероятно!",
-      author: "Мария Иванова",
-      role: "Управител, Сън Травел ООД",
-      rating: 5,
-    },
-    {
-      quote:
-        "Точността на AI е впечатляваща — рядко се налага да коригирам нещо. Спестявам поне 20 часа месечно.",
-      author: "Георги Петров",
-      role: "Счетоводител, БГ Турист",
-      rating: 5,
-    },
-    {
-      quote:
-        "Най-после софтуер, който разбира маржовия метод! Препоръчвам на всяка туристическа агенция.",
-      author: "Елена Димитрова",
-      role: "Финансов директор, Адвенчър Травел",
-      rating: 5,
-    },
-  ];
-
-  return (
-    <section className="py-24">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <ScrollReveal>
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-1.5 text-sm text-violet-300 mb-4">
-              Отзиви
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Какво казват нашите потребители
-            </h2>
-          </div>
-        </ScrollReveal>
-
-        <div className="grid md:grid-cols-3 gap-8">
-          {testimonials.map((testimonial, i) => (
-            <ScrollReveal key={i} delay={i * 0.15}>
-              <div className="rounded-xl border border-border bg-card p-6 h-full flex flex-col">
-                <div className="flex gap-1 mb-4">
-                  {Array.from({ length: testimonial.rating }).map((_, j) => (
-                    <Star
-                      key={j}
-                      className="h-4 w-4 fill-yellow-500 text-yellow-500"
-                    />
-                  ))}
-                </div>
-                <p className="text-muted-foreground flex-1 mb-4">
-                  &ldquo;{testimonial.quote}&rdquo;
-                </p>
-                <div>
-                  <div className="font-semibold text-sm">{testimonial.author}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {testimonial.role}
-                  </div>
-                </div>
-              </div>
-            </ScrollReveal>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function FAQSection() {
   const faqs = [
     {
@@ -1145,19 +1076,19 @@ function Footer() {
             <h4 className="font-semibold mb-4 text-sm">Правни</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <a href="#" className="hover:text-foreground transition-colors">
+                <Link href="/terms" className="hover:text-foreground transition-colors">
                   Условия за ползване
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-foreground transition-colors">
+                <Link href="/privacy" className="hover:text-foreground transition-colors">
                   Политика за поверителност
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="hover:text-foreground transition-colors">
+                <Link href="/cookies" className="hover:text-foreground transition-colors">
                   Бисквитки
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -1184,7 +1115,6 @@ export function LandingPage() {
       <VideoSection />
       <BeforeAfterSection />
       <PricingSection />
-      <TestimonialsSection />
       <FAQSection />
       <CTASection />
       <Footer />

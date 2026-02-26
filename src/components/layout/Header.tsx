@@ -13,8 +13,7 @@ import {
 import { usePathname } from "next/navigation";
 
 const routeLabels: Record<string, string> = {
-  "": "Dashboard",
-  overview: "Dashboard",
+  overview: "Табло",
   protocols: "Протоколи",
   new: "Нов протокол",
   invoices: "Фактури",
@@ -23,9 +22,16 @@ const routeLabels: Record<string, string> = {
   admin: "Админ",
 };
 
+function isUUID(str: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+}
+
 export function Header() {
   const pathname = usePathname();
   const segments = pathname.split("/").filter(Boolean);
+
+  // Skip "overview" to avoid "Табло > Табло"
+  const displaySegments = segments.filter((s) => s !== "overview");
 
   return (
     <header className="flex h-14 items-center gap-4 border-b border-border px-6">
@@ -34,12 +40,15 @@ export function Header() {
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/overview">Dashboard</BreadcrumbLink>
+            <BreadcrumbLink href="/overview">Табло</BreadcrumbLink>
           </BreadcrumbItem>
-          {segments.map((segment, index) => {
-            const href = "/" + segments.slice(0, index + 1).join("/");
-            const isLast = index === segments.length - 1;
-            const label = routeLabels[segment] || segment;
+          {displaySegments.map((segment, index) => {
+            const segmentIndex = segments.indexOf(segment);
+            const href = "/" + segments.slice(0, segmentIndex + 1).join("/");
+            const isLast = index === displaySegments.length - 1;
+            const label = isUUID(segment)
+              ? "Детайли"
+              : routeLabels[segment] || segment;
 
             return (
               <BreadcrumbItem key={href}>

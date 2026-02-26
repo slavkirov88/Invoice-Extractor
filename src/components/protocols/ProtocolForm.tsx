@@ -234,7 +234,7 @@ export function ProtocolForm({ onSuccess }: ProtocolFormProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="standard">Стандартен</SelectItem>
-                  <SelectItem value="commission">Комисионна</SelectItem>
+                  <SelectItem value="commission">Комисионен</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -46,7 +46,11 @@ export async function middleware(request: NextRequest) {
       request.nextUrl.pathname === "/" ||
       request.nextUrl.pathname.startsWith("/login") ||
       request.nextUrl.pathname.startsWith("/auth") ||
-      request.nextUrl.pathname.startsWith("/api/chat");
+      request.nextUrl.pathname.startsWith("/api/chat") ||
+      request.nextUrl.pathname.startsWith("/api/stripe/webhook") ||
+      request.nextUrl.pathname.startsWith("/terms") ||
+      request.nextUrl.pathname.startsWith("/privacy") ||
+      request.nextUrl.pathname.startsWith("/cookies");
 
     if (!user && !isPublicRoute) {
       const url = request.nextUrl.clone();

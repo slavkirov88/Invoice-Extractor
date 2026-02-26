@@ -395,7 +395,7 @@ function AddInvoiceContent() {
                       <SelectItem key={p.id} value={p.id}>
                         №{p.protocol_number} - {p.supplier_name} (
                         {p.protocol_type === "commission"
-                          ? "Комисионна"
+                          ? "Комисионен"
                           : "Стандартен"}
                         )
                       </SelectItem>

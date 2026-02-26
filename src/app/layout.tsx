@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Invoice Extractor",
-  description: "Управление на фактури и протоколи за туристическа агенция",
+  title: "TravelInvoices — Управление на фактури и протоколи",
+  description: "AI-базиран инструмент за управление на фактури и ДДС протоколи по маржов метод за туристически агенции",
 };
 
 export default function RootLayout({

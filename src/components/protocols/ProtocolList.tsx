@@ -77,7 +77,7 @@ export function ProtocolList({
                     }
                   >
                     {protocol.protocol_type === "commission"
-                      ? "Комисионна"
+                      ? "Комисионен"
                       : "Стандартен"}
                   </Badge>
                 </TableCell>

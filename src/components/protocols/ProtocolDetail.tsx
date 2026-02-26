@@ -125,7 +125,7 @@ export function ProtocolDetail({
               }
             >
               {protocol.protocol_type === "commission"
-                ? "Комисионна"
+                ? "Комисионен"
                 : "Стандартен"}
             </Badge>
           </div>
