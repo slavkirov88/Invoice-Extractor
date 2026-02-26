@@ -274,7 +274,7 @@ function AddInvoiceContent() {
           <CardHeader>
             <CardTitle>Качете PDF фактура</CardTitle>
             <CardDescription>
-              Mistral AI ще извлече номер, дата и стойност от фактурата
+              AI софтуер ще извлече номер, дата и стойност от фактурата
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -310,7 +310,7 @@ function AddInvoiceContent() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Loader2 className="mb-4 h-12 w-12 animate-spin text-primary" />
-            <p className="text-lg">Извличане на данни с Mistral AI...</p>
+            <p className="text-lg">Извличане на данни с AI софтуер...</p>
             <p className="text-sm text-muted-foreground">
               Моля изчакайте
             </p>
