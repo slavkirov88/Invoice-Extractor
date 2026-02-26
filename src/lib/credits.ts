@@ -30,7 +30,34 @@ export async function getUserCredits(
     };
   }
 
-  // Check subscription
+  // Check whitelist by email (beta testers — added before registration)
+  if (email) {
+    const { data: whitelist } = await supabase
+      .from("whitelisted_emails")
+      .select("plan, expires_at")
+      .eq("email", email.toLowerCase())
+      .single();
+
+    if (whitelist) {
+      // Check expiration
+      if (whitelist.expires_at && new Date(whitelist.expires_at) < new Date()) {
+        // Expired whitelist — fall through to subscription/free check
+      } else {
+        const plan = (whitelist.plan || "professional") as "professional" | "business";
+        return {
+          plan,
+          planName: plan === "professional" ? "Професионален" : "Бизнес",
+          used: 0,
+          total: Infinity,
+          remaining: Infinity,
+          isUnlimited: true,
+          hasSubscription: true,
+        };
+      }
+    }
+  }
+
+  // Check subscription (Stripe or admin-granted)
   const { data: subscription } = await supabase
     .from("subscriptions")
     .select("status, plan, stripe_subscription_id, current_period_end")
@@ -42,7 +69,7 @@ export async function getUserCredits(
     (subscription.status === "active" || subscription.status === "trialing");
 
   if (hasActiveSub) {
-    // For admin-granted (whitelist) subs without Stripe, check expiration
+    // For admin-granted subs without Stripe, check expiration
     const isWhitelist = !subscription.stripe_subscription_id;
     if (isWhitelist && subscription.current_period_end) {
       if (new Date(subscription.current_period_end) < new Date()) {
