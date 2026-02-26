@@ -33,7 +33,7 @@ export async function getUserCredits(
   // Check subscription
   const { data: subscription } = await supabase
     .from("subscriptions")
-    .select("status, plan")
+    .select("status, plan, stripe_subscription_id, current_period_end")
     .eq("user_id", userId)
     .single();
 
@@ -42,6 +42,22 @@ export async function getUserCredits(
     (subscription.status === "active" || subscription.status === "trialing");
 
   if (hasActiveSub) {
+    // For admin-granted (whitelist) subs without Stripe, check expiration
+    const isWhitelist = !subscription.stripe_subscription_id;
+    if (isWhitelist && subscription.current_period_end) {
+      if (new Date(subscription.current_period_end) < new Date()) {
+        return {
+          plan: "free",
+          planName: "Безплатен",
+          used: 0,
+          total: 0,
+          remaining: 0,
+          isUnlimited: false,
+          hasSubscription: false,
+        };
+      }
+    }
+
     const plan = subscription.plan as "professional" | "business";
     return {
       plan,

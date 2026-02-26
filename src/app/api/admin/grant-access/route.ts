@@ -27,25 +27,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
-  const { userId, plan } = await request.json();
+  const { userId, plan, months } = await request.json();
 
-  if (!userId || !plan || !["professional", "business"].includes(plan)) {
+  const selectedPlan = plan || "professional";
+  const selectedMonths = months || 1;
+
+  if (!userId || !["professional", "business"].includes(selectedPlan)) {
     return NextResponse.json(
-      { error: "userId and plan (professional/business) are required" },
+      { error: "userId is required, plan must be professional or business" },
       { status: 400 }
     );
   }
 
   const adminSupabase = getAdminSupabase();
 
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + selectedMonths * 30);
+
   const { error } = await adminSupabase.from("subscriptions").upsert(
     {
       user_id: userId,
       status: "active",
-      plan,
+      plan: selectedPlan,
       stripe_subscription_id: null,
       stripe_customer_id: null,
-      current_period_end: null,
+      current_period_end: expiresAt.toISOString(),
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" }
