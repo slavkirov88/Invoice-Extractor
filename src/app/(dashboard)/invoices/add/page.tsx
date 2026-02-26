@@ -29,8 +29,12 @@ import {
   CheckCircle,
   Loader2,
   ArrowRight,
+  Zap,
+  AlertCircle,
 } from "lucide-react";
+import Link from "next/link";
 import type { Protocol, ExtractedInvoiceData } from "@/types";
+import type { UserCredits } from "@/lib/credits";
 
 type Step = "upload" | "extracting" | "review" | "saving";
 
@@ -62,18 +66,31 @@ function AddInvoiceContent() {
     issueDate: "",
     amount: "",
   });
+  const [credits, setCredits] = useState<UserCredits | null>(null);
+  const [creditsLoading, setCreditsLoading] = useState(true);
 
   const supabase = createClient();
 
   useEffect(() => {
-    async function loadProtocols() {
+    async function init() {
+      // Fetch credits
+      try {
+        const res = await fetch("/api/credits");
+        if (res.ok) setCredits(await res.json());
+      } catch {
+        // allow page on error
+      } finally {
+        setCreditsLoading(false);
+      }
+
+      // Fetch protocols
       const { data } = await supabase
         .from("protocols")
         .select("*")
         .order("protocol_number", { ascending: false });
       if (data) setProtocols(data);
     }
-    loadProtocols();
+    init();
   }, []);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -176,6 +193,52 @@ function AddInvoiceContent() {
       router.push(`/protocols/${selectedProtocolId}`);
     }
   };
+
+  if (creditsLoading) {
+    return (
+      <div className="mx-auto max-w-2xl">
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (credits && !credits.isUnlimited) {
+    return (
+      <div className="mx-auto max-w-2xl">
+        <Card>
+          <CardContent className="py-12">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-violet-500/10">
+                <Zap className="h-8 w-8 text-violet-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Започнете безплатен тест</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  За да добавяте фактури, започнете 7-дневен безплатен тестов период.
+                  Не ви таксуваме през първите 7 дни.
+                </p>
+              </div>
+              <Link
+                href="/settings"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-8 py-3 text-sm font-medium text-white hover:bg-violet-700 transition-colors"
+              >
+                <Zap className="h-4 w-4" />
+                Започни 7-дневен безплатен тест
+              </Link>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                Съществуващите фактури остават достъпни
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">

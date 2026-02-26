@@ -41,11 +41,6 @@ const navItems = [
     href: "/protocols",
     icon: FileText,
   },
-  {
-    title: "Добави фактура",
-    href: "/invoices/add",
-    icon: Plus,
-  },
 ];
 
 export function AppSidebar() {
@@ -102,6 +97,19 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
+            <div className="mt-3 px-2">
+              <Link
+                href="/invoices/add"
+                className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
+                  pathname.startsWith("/invoices/add")
+                    ? "bg-violet-700 text-white"
+                    : "bg-violet-600 text-white hover:bg-violet-700"
+                }`}
+              >
+                <Plus className="h-4 w-4" />
+                Добави фактура
+              </Link>
+            </div>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
