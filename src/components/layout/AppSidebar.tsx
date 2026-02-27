@@ -12,6 +12,7 @@ import {
   Shield,
   BadgeCheck,
   Zap,
+  Mail,
 } from "lucide-react";
 import {
   Sidebar,
@@ -156,6 +157,14 @@ export function AppSidebar() {
                 <Settings className="h-4 w-4" />
                 <span>Настройки</span>
               </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <a href="mailto:support@travelinvoices.com">
+                <Mail className="h-4 w-4" />
+                <span>Поддръжка</span>
+              </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

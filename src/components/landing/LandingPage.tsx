@@ -59,9 +59,9 @@ function Navbar() {
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? "bg-background/80 backdrop-blur-xl border-b border-border shadow-lg"
-          : "bg-transparent"
+        scrolled || mobileOpen
+          ? "bg-background backdrop-blur-xl border-b border-border shadow-lg"
+          : "bg-background backdrop-blur-xl border-b border-border shadow-lg md:bg-transparent md:backdrop-blur-none md:border-b-0 md:shadow-none"
       }`}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -115,7 +115,7 @@ function Navbar() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="md:hidden border-t border-border overflow-hidden"
+              className="md:hidden border-t border-border overflow-hidden bg-background"
             >
               <div className="py-4 space-y-3">
                 {navLinks.map((link) => (
@@ -132,15 +132,17 @@ function Navbar() {
                   <Link
                     href="/login"
                     className="block w-full text-center rounded-lg border border-border px-4 py-2.5 text-sm"
+                    onClick={() => setMobileOpen(false)}
                   >
                     Вход
                   </Link>
-                  <Link
+                  <a
                     href="#pricing"
                     className="block w-full text-center rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-medium text-white"
+                    onClick={() => setMobileOpen(false)}
                   >
                     Започни безплатно
-                  </Link>
+                  </a>
                 </div>
               </div>
             </motion.div>
@@ -199,7 +201,7 @@ function HeroSection() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.6 }}
-          className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-6"
+          className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.15] mb-6"
         >
           Автоматизирай фактурирането
           <br />
@@ -226,7 +228,7 @@ function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="mx-auto max-w-2xl text-lg sm:text-xl text-muted-foreground mb-10"
+          className="mx-auto max-w-2xl text-base sm:text-lg md:text-xl text-muted-foreground mb-10 px-2 sm:px-0"
         >
           AI-базиран инструмент, създаден специално за туристически агенции.
           Качвате PDF фактура — ние извличаме данните и генерираме протоколи по{" "}
@@ -243,14 +245,14 @@ function HeroSection() {
         >
           <Link
             href="#pricing"
-            className="group inline-flex items-center gap-2 rounded-xl bg-violet-600 px-8 py-4 text-lg font-semibold text-white hover:bg-violet-700 transition-all shadow-2xl shadow-violet-600/25 hover:shadow-violet-600/40 hover:scale-[1.02]"
+            className="group inline-flex items-center gap-2 rounded-xl bg-violet-600 px-6 py-3 sm:px-8 sm:py-4 text-base sm:text-lg font-semibold text-white hover:bg-violet-700 transition-all shadow-2xl shadow-violet-600/25 hover:shadow-violet-600/40 hover:scale-[1.02]"
           >
             Започни 7-дневен безплатен тест
             <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
           </Link>
           <a
             href="#demo"
-            className="inline-flex items-center gap-2 rounded-xl border border-border px-8 py-4 text-lg font-medium hover:bg-accent transition-colors"
+            className="inline-flex items-center gap-2 rounded-xl border border-border px-6 py-3 sm:px-8 sm:py-4 text-base sm:text-lg font-medium hover:bg-accent transition-colors"
           >
             <Play className="h-5 w-5 text-violet-400" />
             Виж демо
@@ -262,7 +264,7 @@ function HeroSection() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.9 }}
-          className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground"
+          className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-xs sm:text-sm text-muted-foreground"
         >
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
@@ -301,17 +303,17 @@ function HeroSection() {
                   </div>
                 </div>
               </div>
-              <div className="p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="h-6 w-48 bg-foreground/10 rounded animate-pulse" />
-                    <div className="h-4 w-32 bg-foreground/5 rounded mt-2" />
+              <div className="p-3 sm:p-6 space-y-3 sm:space-y-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="h-5 sm:h-6 w-32 sm:w-48 bg-foreground/10 rounded animate-pulse" />
+                    <div className="h-3 sm:h-4 w-24 sm:w-32 bg-foreground/5 rounded mt-2" />
                   </div>
-                  <div className="h-10 w-36 bg-violet-600/20 rounded-lg flex items-center justify-center text-xs text-violet-400">
+                  <div className="h-8 sm:h-10 w-28 sm:w-36 bg-violet-600/20 rounded-lg flex items-center justify-center text-[10px] sm:text-xs text-violet-400 shrink-0">
                     + Добави фактура
                   </div>
                 </div>
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                   {[
                     { label: "Протоколи", value: "24" },
                     { label: "Фактури", value: "156" },
@@ -320,14 +322,14 @@ function HeroSection() {
                   ].map((stat) => (
                     <div
                       key={stat.label}
-                      className="rounded-lg bg-background/50 border border-border/50 p-3"
+                      className="rounded-lg bg-background/50 border border-border/50 p-2 sm:p-3"
                     >
-                      <div className="text-xs text-muted-foreground">{stat.label}</div>
-                      <div className="text-lg font-bold mt-1">{stat.value}</div>
+                      <div className="text-[10px] sm:text-xs text-muted-foreground">{stat.label}</div>
+                      <div className="text-sm sm:text-lg font-bold mt-0.5 sm:mt-1">{stat.value}</div>
                     </div>
                   ))}
                 </div>
-                <div className="rounded-lg border border-border/50 overflow-hidden">
+                <div className="hidden sm:block rounded-lg border border-border/50 overflow-hidden">
                   <div className="grid grid-cols-5 gap-0 text-xs">
                     <div className="px-3 py-2 bg-muted/30 font-medium">№</div>
                     <div className="px-3 py-2 bg-muted/30 font-medium">Доставчик</div>
@@ -430,11 +432,11 @@ function ProblemSection() {
   ];
 
   return (
-    <section className="py-24">
+    <section className="py-16 sm:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <ScrollReveal>
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+          <div className="text-center mb-10 sm:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
               Познато ли ви е?
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -503,18 +505,18 @@ function FeaturesSection() {
   ];
 
   return (
-    <section id="features" className="py-24 bg-muted/30">
+    <section id="features" className="py-16 sm:py-24 bg-muted/30">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <ScrollReveal>
-          <div className="text-center mb-16">
+          <div className="text-center mb-10 sm:mb-16">
             <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-1.5 text-sm text-violet-300 mb-4">
               Функции
             </div>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Всичко, от което имате нужда
+              Софтуер за фактури и протоколи за туроператори
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Единственият инструмент, който комбинира AI извличане от фактури с
+              Единственият инструмент, който комбинира AI извличане от PDF фактури с
               автоматично генериране на протоколи по ЗДДС маржов метод.
             </p>
           </div>
@@ -569,15 +571,15 @@ function HowItWorksSection() {
   ];
 
   return (
-    <section id="how-it-works" className="py-24">
+    <section id="how-it-works" className="py-16 sm:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <ScrollReveal>
-          <div className="text-center mb-16">
+          <div className="text-center mb-10 sm:mb-16">
             <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-1.5 text-sm text-violet-300 mb-4">
               Как работи
             </div>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              От PDF до протокол за 30 секунди
+              От PDF фактура до протокол за марж за 30 секунди
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Четири прости стъпки заменят часове ръчна работа.
@@ -592,12 +594,12 @@ function HowItWorksSection() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {steps.map((step, i) => (
               <ScrollReveal key={i} delay={i * 0.15}>
-                <div className="relative text-center group">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-violet-600/10 border border-violet-500/30 mb-6 group-hover:bg-violet-600/20 transition-colors">
+                <div className="text-center group">
+                  <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-violet-600/10 border border-violet-500/30 mb-6 group-hover:bg-violet-600/20 transition-colors">
                     <step.icon className="h-7 w-7 text-violet-400" />
-                  </div>
-                  <div className="absolute -top-2 -right-2 flex items-center justify-center w-8 h-8 rounded-full bg-violet-600 text-white text-xs font-bold">
-                    {step.step}
+                    <div className="absolute -top-2 -right-2 flex items-center justify-center w-8 h-8 rounded-full bg-violet-600 text-white text-xs font-bold">
+                      {step.step}
+                    </div>
                   </div>
                   <h3 className="text-lg font-semibold mb-2">{step.title}</h3>
                   <p className="text-sm text-muted-foreground">{step.desc}</p>
@@ -613,7 +615,7 @@ function HowItWorksSection() {
 
 function VideoSection() {
   return (
-    <section id="demo" className="py-24 bg-muted/30">
+    <section id="demo" className="py-16 sm:py-24 bg-muted/30">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <ScrollReveal>
           <div className="text-center mb-12">
@@ -665,11 +667,11 @@ function VideoSection() {
 
 function BeforeAfterSection() {
   return (
-    <section className="py-24">
+    <section className="py-16 sm:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <ScrollReveal>
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+          <div className="text-center mb-10 sm:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
               Преди и след TravelInvoices
             </h2>
           </div>
@@ -677,8 +679,8 @@ function BeforeAfterSection() {
 
         <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
           <ScrollReveal direction="left">
-            <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-8">
-              <div className="flex items-center gap-2 text-red-400 font-semibold mb-6">
+            <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-5 sm:p-8">
+              <div className="flex items-center gap-2 text-red-400 font-semibold mb-4 sm:mb-6">
                 <X className="h-5 w-5" />
                 Без TravelInvoices
               </div>
@@ -701,8 +703,8 @@ function BeforeAfterSection() {
           </ScrollReveal>
 
           <ScrollReveal direction="right">
-            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-8">
-              <div className="flex items-center gap-2 text-emerald-400 font-semibold mb-6">
+            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5 sm:p-8">
+              <div className="flex items-center gap-2 text-emerald-400 font-semibold mb-4 sm:mb-6">
                 <CheckCircle2 className="h-5 w-5" />
                 С TravelInvoices
               </div>
@@ -774,10 +776,10 @@ function PricingSection() {
   ];
 
   return (
-    <section id="pricing" className="py-24 bg-muted/30">
+    <section id="pricing" className="py-16 sm:py-24 bg-muted/30">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <ScrollReveal>
-          <div className="text-center mb-16">
+          <div className="text-center mb-10 sm:mb-16">
             <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-1.5 text-sm text-violet-300 mb-4">
               Цени
             </div>
@@ -795,7 +797,7 @@ function PricingSection() {
           {plans.map((plan, i) => (
             <ScrollReveal key={i} delay={i * 0.15}>
               <div
-                className={`relative rounded-2xl p-8 h-full flex flex-col ${
+                className={`relative rounded-2xl p-5 sm:p-8 h-full flex flex-col ${
                   plan.popular
                     ? "border-2 border-violet-500 bg-card shadow-xl shadow-violet-500/10"
                     : "border border-border bg-card"
@@ -914,10 +916,10 @@ function FAQSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <section id="faq" className="py-24 bg-muted/30">
+    <section id="faq" className="py-16 sm:py-24 bg-muted/30">
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         <ScrollReveal>
-          <div className="text-center mb-16">
+          <div className="text-center mb-10 sm:mb-16">
             <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-1.5 text-sm text-violet-300 mb-4">
               FAQ
             </div>
@@ -968,10 +970,10 @@ function FAQSection() {
 
 function CTASection() {
   return (
-    <section className="py-24">
+    <section className="py-16 sm:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <ScrollReveal>
-          <div className="relative rounded-3xl overflow-hidden">
+          <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden">
             {/* Background */}
             <div className="absolute inset-0 bg-gradient-to-br from-violet-600 to-indigo-700" />
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.1),transparent_50%)]" />
@@ -984,8 +986,8 @@ function CTASection() {
               }}
             />
 
-            <div className="relative px-8 py-16 sm:px-16 sm:py-24 text-center">
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
+            <div className="relative px-5 py-12 sm:px-16 sm:py-24 text-center">
+              <h2 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-white mb-6">
                 Готови ли сте да спестявате
                 <br />
                 време и нерви?
@@ -997,7 +999,7 @@ function CTASection() {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
                   href="/login"
-                  className="group inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-lg font-semibold text-violet-700 hover:bg-white/90 transition-all shadow-2xl hover:scale-[1.02]"
+                  className="group inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 sm:px-8 sm:py-4 text-base sm:text-lg font-semibold text-violet-700 hover:bg-white/90 transition-all shadow-2xl hover:scale-[1.02]"
                 >
                   Започни 7-дневен безплатен тест
                   <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -1089,6 +1091,15 @@ function Footer() {
                 <Link href="/cookies" className="hover:text-foreground transition-colors">
                   Бисквитки
                 </Link>
+              </li>
+            </ul>
+
+            <h4 className="font-semibold mb-3 mt-6 text-sm">Контакти</h4>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>
+                <a href="mailto:support@travelinvoices.com" className="hover:text-foreground transition-colors">
+                  support@travelinvoices.com
+                </a>
               </li>
             </ul>
           </div>

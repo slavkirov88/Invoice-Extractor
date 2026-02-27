@@ -12,7 +12,7 @@ interface Message {
 const INITIAL_MESSAGE: Message = {
   role: "assistant",
   content:
-    "Здравейте! Аз съм виртуалният асистент на TravelInvoices. Мога да отговоря на въпросите ви за продукта, цените и функциите. Как мога да ви помогна?",
+    "Здравейте! Имате въпрос за TravelInvoices? Питайте за цени, функции или как работи системата — тук съм да помогна.",
 };
 
 export function ChatBot() {
@@ -64,7 +64,7 @@ export function ChatBot() {
         {
           role: "assistant",
           content:
-            "Съжалявам, възникна грешка. Моля, опитайте отново или ни пишете на support@travelinvoices.com",
+            "Нещо се обърка. Опитайте пак след малко или ни пишете на support@travelinvoices.com.",
         },
       ]);
     } finally {
@@ -104,7 +104,7 @@ export function ChatBot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-6 right-6 z-50 w-[380px] max-w-[calc(100vw-2rem)] rounded-2xl border border-border bg-card shadow-2xl overflow-hidden"
+            className="fixed bottom-0 right-0 sm:bottom-6 sm:right-6 z-50 w-full sm:w-[380px] sm:max-w-[calc(100vw-2rem)] rounded-t-2xl sm:rounded-2xl border border-border bg-card shadow-2xl overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 bg-violet-600">
@@ -126,7 +126,7 @@ export function ChatBot() {
             </div>
 
             {/* Messages */}
-            <div className="h-80 overflow-y-auto p-4 space-y-4">
+            <div className="h-[60vh] sm:h-80 overflow-y-auto p-4 space-y-4">
               {messages.map((message, i) => (
                 <div
                   key={i}
