@@ -45,6 +45,34 @@ export interface VatCalculation {
   vatAmount: number;
 }
 
+export interface EmailAccount {
+  id: string;
+  user_id: string;
+  display_name: string;
+  email_address: string;
+  imap_host: string;
+  imap_port: number;
+  imap_secure: boolean;
+  username: string;
+  last_synced_at: string | null;
+  created_at: string;
+}
+
+export interface EmailAttachment {
+  id: string;
+  user_id: string;
+  account_id: string;
+  email_subject: string | null;
+  email_from: string | null;
+  email_date: string | null;
+  email_message_id: string;
+  filename: string;
+  file_size: number | null;
+  mime_type: string | null;
+  storage_path: string;
+  created_at: string;
+}
+
 export interface Subscription {
   user_id: string;
   stripe_subscription_id: string | null;

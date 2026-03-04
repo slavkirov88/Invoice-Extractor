@@ -19,6 +19,7 @@
     "date-fns": "^4.1.0",
     "exceljs": "^4.4.0",
     "framer-motion": "^12.34.3",
+    "imapflow": "^1.2.11",
     "jspdf": "^4.2.0",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.575.0",

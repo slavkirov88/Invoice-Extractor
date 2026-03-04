@@ -13,6 +13,7 @@ import {
   BadgeCheck,
   Zap,
   Mail,
+  Inbox,
 } from "lucide-react";
 import {
   Sidebar,
@@ -41,6 +42,11 @@ const navItems = [
     title: "Протоколи",
     href: "/protocols",
     icon: FileText,
+  },
+  {
+    title: "Имейли",
+    href: "/email",
+    icon: Inbox,
   },
 ];
 
