@@ -37,10 +37,12 @@ export function ProtocolForm({ onSuccess }: ProtocolFormProps) {
     creation_date: new Date().toISOString().split("T")[0],
     tax_event_date: new Date().toISOString().split("T")[0],
     reference_number: "",
-    protocol_type: "standard" as "standard" | "commission",
-    tax_rate: 20,
+    protocol_type: "eu" as "eu" | "non_eu" | "mixed",
     linked_protocol_number: "",
   });
+
+  // Auto tax_rate based on protocol type
+  const taxRate = formData.protocol_type === "non_eu" ? 0 : 20;
 
   const supabase = createClient();
 
@@ -96,7 +98,7 @@ export function ProtocolForm({ onSuccess }: ProtocolFormProps) {
         tax_event_date: formData.tax_event_date,
         reference_number: formData.reference_number || null,
         protocol_type: formData.protocol_type,
-        tax_rate: formData.tax_rate,
+        tax_rate: taxRate,
         linked_protocol_number: formData.linked_protocol_number
           ? parseInt(formData.linked_protocol_number)
           : null,
@@ -225,7 +227,7 @@ export function ProtocolForm({ onSuccess }: ProtocolFormProps) {
               <Label htmlFor="protocol_type">Тип протокол</Label>
               <Select
                 value={formData.protocol_type}
-                onValueChange={(value: "standard" | "commission") =>
+                onValueChange={(value: "eu" | "non_eu" | "mixed") =>
                   setFormData({ ...formData, protocol_type: value })
                 }
               >
@@ -233,25 +235,24 @@ export function ProtocolForm({ onSuccess }: ProtocolFormProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="standard">Стандартен</SelectItem>
-                  <SelectItem value="commission">Комисионен</SelectItem>
+                  <SelectItem value="eu">в ЕС (20%)</SelectItem>
+                  <SelectItem value="non_eu">извън ЕС (0%)</SelectItem>
+                  <SelectItem value="mixed">Смесен</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="tax_rate">Данъчна ставка (%)</Label>
+              <Label>Данъчна ставка (%)</Label>
               <Input
-                id="tax_rate"
-                type="number"
-                value={formData.tax_rate}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    tax_rate: parseFloat(e.target.value),
-                  })
-                }
-                required
+                value={formData.protocol_type === "mixed" ? "20 / 0" : taxRate}
+                disabled
+                className="text-muted-foreground"
               />
+              {formData.protocol_type === "mixed" && (
+                <p className="text-xs text-muted-foreground">
+                  Ставката се задава за всяка фактура поотделно
+                </p>
+              )}
             </div>
           </div>
 

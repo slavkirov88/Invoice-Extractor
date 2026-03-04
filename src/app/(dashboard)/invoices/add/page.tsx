@@ -56,9 +56,8 @@ function AddInvoiceContent() {
   const [selectedProtocolId, setSelectedProtocolId] = useState(
     preselectedProtocol || ""
   );
-  const [invoiceType, setInvoiceType] = useState<
-    "income" | "expense" | "commission"
-  >("income");
+  const [invoiceType, setInvoiceType] = useState<"income" | "expense">("income");
+  const [invoiceVatRate, setInvoiceVatRate] = useState<20 | 0>(20);
   const [extractedData, setExtractedData] =
     useState<ExtractedInvoiceData | null>(null);
   const [editableData, setEditableData] = useState({
@@ -157,8 +156,7 @@ function AddInvoiceContent() {
       return;
     }
 
-    const section =
-      invoiceType === "income" ? "A" : "B";
+    const section = invoiceType === "income" ? "A" : "B";
 
     // Get the next sequence number for this section
     const { data: existing } = await supabase
@@ -173,6 +171,10 @@ function AddInvoiceContent() {
       ? existing[0].sequence_number + 1
       : 1;
 
+    // Determine vat_rate for mixed protocols
+    const selectedProtocol = protocols.find((p) => p.id === selectedProtocolId);
+    const vatRate = selectedProtocol?.protocol_type === "mixed" ? invoiceVatRate : null;
+
     const { error } = await supabase.from("invoices").insert({
       protocol_id: selectedProtocolId,
       section,
@@ -182,6 +184,7 @@ function AddInvoiceContent() {
       issue_date: editableData.issueDate,
       amount: parseFloat(editableData.amount),
       invoice_category: invoiceType,
+      vat_rate: vatRate,
       user_id: user.id,
     });
 
@@ -394,7 +397,13 @@ function AddInvoiceContent() {
                     {protocols.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         №{p.protocol_number} - {p.supplier_name} (
-                        {p.protocol_type === "commission"
+                        {p.protocol_type === "eu"
+                          ? "в ЕС"
+                          : p.protocol_type === "non_eu"
+                          ? "извън ЕС"
+                          : p.protocol_type === "mixed"
+                          ? "Смесен"
+                          : p.protocol_type === "commission"
                           ? "Комисионен"
                           : "Стандартен"}
                         )
@@ -408,9 +417,7 @@ function AddInvoiceContent() {
                 <Label>Тип фактура</Label>
                 <Select
                   value={invoiceType}
-                  onValueChange={(v: "income" | "expense" | "commission") =>
-                    setInvoiceType(v)
-                  }
+                  onValueChange={(v: "income" | "expense") => setInvoiceType(v)}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -422,12 +429,28 @@ function AddInvoiceContent() {
                     <SelectItem value="expense">
                       Разходна (Раздел Б - платени суми)
                     </SelectItem>
-                    <SelectItem value="commission">
-                      Комисионна (отделен протокол)
-                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* VAT rate selector — only for mixed protocols */}
+              {protocols.find((p) => p.id === selectedProtocolId)?.protocol_type === "mixed" && (
+                <div className="space-y-2">
+                  <Label>ДДС ставка</Label>
+                  <Select
+                    value={String(invoiceVatRate)}
+                    onValueChange={(v) => setInvoiceVatRate(Number(v) as 20 | 0)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="20">в ЕС — 20%</SelectItem>
+                      <SelectItem value="0">извън ЕС — 0%</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <Button
                 onClick={handleSave}

@@ -32,11 +32,14 @@ interface ProtocolWithInvoices extends Protocol {
 function InvoiceTable({
   title,
   invoices,
+  showVatRate = false,
 }: {
   title: string;
   invoices: Invoice[];
+  showVatRate?: boolean;
 }) {
   const total = invoices.reduce((sum, inv) => sum + Number(inv.amount), 0);
+  const colSpan = showVatRate ? 6 : 5;
 
   return (
     <Card>
@@ -57,6 +60,7 @@ function InvoiceTable({
                 <TableHead>№ на документа</TableHead>
                 <TableHead>Дата на издаване</TableHead>
                 <TableHead>ИД на контрагента</TableHead>
+                {showVatRate && <TableHead className="text-center">ДДС ставка</TableHead>}
                 <TableHead className="text-right">Стойност EUR</TableHead>
               </TableRow>
             </TableHeader>
@@ -72,13 +76,18 @@ function InvoiceTable({
                     {format(new Date(inv.issue_date), "dd.MM.yyyy")}
                   </TableCell>
                   <TableCell>{inv.counterparty_vat_id || "-"}</TableCell>
+                  {showVatRate && (
+                    <TableCell className="text-center">
+                      {inv.vat_rate != null ? `${inv.vat_rate}%` : "-"}
+                    </TableCell>
+                  )}
                   <TableCell className="text-right font-mono">
                     {Number(inv.amount).toFixed(2)}
                   </TableCell>
                 </TableRow>
               ))}
               <TableRow className="font-bold">
-                <TableCell colSpan={5}>
+                <TableCell colSpan={colSpan}>
                   Общ размер на{" "}
                   {invoices[0]?.section === "A"
                     ? "получените"
@@ -119,12 +128,20 @@ export function ProtocolDetail({
             </h1>
             <Badge
               variant={
-                protocol.protocol_type === "commission"
+                protocol.protocol_type === "non_eu"
                   ? "secondary"
+                  : protocol.protocol_type === "mixed"
+                  ? "outline"
                   : "default"
               }
             >
-              {protocol.protocol_type === "commission"
+              {protocol.protocol_type === "eu"
+                ? "в ЕС"
+                : protocol.protocol_type === "non_eu"
+                ? "извън ЕС"
+                : protocol.protocol_type === "mixed"
+                ? "Смесен"
+                : protocol.protocol_type === "commission"
                 ? "Комисионен"
                 : "Стандартен"}
             </Badge>
@@ -183,16 +200,19 @@ export function ProtocolDetail({
       <InvoiceTable
         title="Раздел А. Получени суми по туристическата услуга"
         invoices={sectionA}
+        showVatRate={protocol.protocol_type === "mixed"}
       />
 
       <InvoiceTable
         title="Раздел Б. Платени суми по туристическата услуга"
         invoices={sectionB}
+        showVatRate={protocol.protocol_type === "mixed"}
       />
 
       <VatCalculation
         invoices={protocol.invoices}
         taxRate={protocol.tax_rate}
+        protocolType={protocol.protocol_type}
       />
     </div>
   );

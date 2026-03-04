@@ -71,12 +71,20 @@ export function ProtocolList({
                 <TableCell>
                   <Badge
                     variant={
-                      protocol.protocol_type === "commission"
+                      protocol.protocol_type === "non_eu"
                         ? "secondary"
+                        : protocol.protocol_type === "mixed"
+                        ? "outline"
                         : "default"
                     }
                   >
-                    {protocol.protocol_type === "commission"
+                    {protocol.protocol_type === "eu"
+                      ? "в ЕС"
+                      : protocol.protocol_type === "non_eu"
+                      ? "извън ЕС"
+                      : protocol.protocol_type === "mixed"
+                      ? "Смесен"
+                      : protocol.protocol_type === "commission"
                       ? "Комисионен"
                       : "Стандартен"}
                   </Badge>

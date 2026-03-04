@@ -7,7 +7,7 @@ export interface Protocol {
   creation_date: string;
   tax_event_date: string;
   reference_number: string | null;
-  protocol_type: "standard" | "commission";
+  protocol_type: "eu" | "non_eu" | "mixed" | "standard" | "commission";
   tax_rate: number;
   user_id: string;
   created_at: string;
@@ -26,6 +26,7 @@ export interface Invoice {
   counterparty_vat_id: string | null;
   amount: number;
   invoice_category: "income" | "expense" | "commission";
+  vat_rate: number | null;
   user_id: string;
   created_at: string;
 }
