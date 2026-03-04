@@ -14,6 +14,10 @@ function getAttachmentParts(bodyStructure: BodyStructure, parts: BodyStructure[]
   if (bodyStructure.disposition?.toLowerCase() === 'attachment' && bodyStructure.filename) {
     parts.push(bodyStructure);
   }
+  // Also catch inline PDFs without explicit disposition
+  if (!bodyStructure.disposition && bodyStructure.filename) {
+    parts.push(bodyStructure);
+  }
   if (bodyStructure.childNodes) {
     for (const child of bodyStructure.childNodes) {
       getAttachmentParts(child, parts);
@@ -46,13 +50,17 @@ export async function syncEmailAccount(accountId: string, userId: string): Promi
 
   const client = new ImapFlow({
     host: account.imap_host,
-    port: account.imap_port,
+    port: Number(account.imap_port),
     secure: account.imap_secure,
     auth: {
       user: account.username,
       pass: password,
     },
     logger: false,
+    // Increase timeout for slow connections
+    connectionTimeout: 30000,
+    greetingTimeout: 15000,
+    socketTimeout: 30000,
   });
 
   let newAttachments = 0;
@@ -67,17 +75,21 @@ export async function syncEmailAccount(accountId: string, userId: string): Promi
         ? new Date(account.last_synced_at)
         : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-      const uids = await client.search({ since: sinceDate }, { uid: true });
-      const uidList = uids === false ? [] : uids;
+      // Search returns sequence numbers (or UIDs if uid:true)
+      const searchResult = await client.search({ since: sinceDate }, { uid: true });
+      const uidList: number[] = searchResult === false ? [] : searchResult;
 
       if (uidList.length > 0) {
-        for await (const message of client.fetch(
-          uidList as unknown as string,
+        // Use fetchAll instead of fetch loop to avoid streaming issues
+        const messages = await client.fetchAll(
+          uidList,
           { envelope: true, bodyStructure: true, uid: true },
           { uid: true }
-        )) {
+        );
+
+        for (const message of messages) {
           const messageId = message.envelope?.messageId || `uid-${message.uid}`;
-          const bodyStructure = message.bodyStructure as BodyStructure;
+          const bodyStructure = message.bodyStructure as BodyStructure | undefined;
 
           if (!bodyStructure) continue;
 
@@ -99,16 +111,19 @@ export async function syncEmailAccount(accountId: string, userId: string): Promi
 
             // Fetch the actual attachment data
             const partData = await client.fetchOne(
-              `${message.uid}`,
+              String(message.uid),
               { bodyParts: [part.part] },
               { uid: true }
             );
 
-            const bodyParts = (partData as unknown as Record<string, unknown>).bodyParts as Map<string, Buffer> | undefined;
-            if (!bodyParts) continue;
+            if (!partData) continue;
 
-            const attachmentBuffer = bodyParts.get(part.part);
-            if (!attachmentBuffer) continue;
+            // imapflow returns bodyParts as a Map
+            const bpMap = (partData as unknown as { bodyParts?: Map<string, Buffer> }).bodyParts;
+            if (!bpMap) continue;
+
+            const attachmentBuffer = bpMap.get(part.part);
+            if (!attachmentBuffer || attachmentBuffer.length === 0) continue;
 
             const filename = part.filename || 'attachment.bin';
             const attachmentId = crypto.randomUUID();
@@ -123,7 +138,7 @@ export async function syncEmailAccount(accountId: string, userId: string): Promi
               });
 
             if (uploadError) {
-              console.error('Storage upload error:', uploadError);
+              console.error('Storage upload error:', uploadError.message);
               continue;
             }
 
@@ -161,8 +176,20 @@ export async function syncEmailAccount(accountId: string, userId: string): Promi
       .eq('id', accountId);
 
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return { newAttachments, error: `IMAP грешка: ${message}` };
+    // Extract detailed error info from imapflow
+    const errObj = err as Record<string, unknown>;
+    const responseText = errObj?.response as string | undefined;
+    const command = errObj?.command as string | undefined;
+    const baseMsg = err instanceof Error ? err.message : String(err);
+
+    const detail = [
+      command ? `команда: ${command}` : null,
+      responseText ? `отговор: ${responseText}` : null,
+    ].filter(Boolean).join(', ');
+
+    const errorMsg = detail ? `${baseMsg} (${detail})` : baseMsg;
+    console.error('IMAP sync error:', errorMsg);
+    return { newAttachments, error: `IMAP грешка: ${errorMsg}` };
   } finally {
     try {
       await client.logout();
