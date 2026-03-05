@@ -49,7 +49,20 @@ import {
 } from "lucide-react";
 import type { EmailAccount, EmailAttachment, Protocol } from "@/types";
 
+// ── Provider presets ────────────────────────────────────────────────────────
+type ProviderId = "gmail" | "abv" | "mail_bg" | "outlook" | "yahoo" | "other";
+
+const PROVIDERS: Record<ProviderId, { label: string; imap_host: string; imap_port: number; imap_secure: boolean }> = {
+  gmail:   { label: "Gmail",       imap_host: "imap.gmail.com",            imap_port: 993, imap_secure: true },
+  abv:     { label: "Abv.bg",      imap_host: "imap.abv.bg",               imap_port: 993, imap_secure: true },
+  mail_bg: { label: "Mail.bg",     imap_host: "imap.mail.bg",              imap_port: 993, imap_secure: true },
+  outlook: { label: "Outlook",     imap_host: "outlook.office365.com",     imap_port: 993, imap_secure: true },
+  yahoo:   { label: "Yahoo",       imap_host: "imap.mail.yahoo.com",       imap_port: 993, imap_secure: true },
+  other:   { label: "Друг",        imap_host: "",                          imap_port: 993, imap_secure: true },
+};
+
 // ── Schemas ────────────────────────────────────────────────────────────────
+// (used only for "Друг" provider — others are auto-filled)
 const AccountSchema = z.object({
   display_name: z.string().min(1, "Задайте наименование"),
   email_address: z.string().email("Невалиден имейл адрес"),
@@ -485,17 +498,27 @@ export default function EmailPage() {
 
   const supabase = createClient();
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    watch,
-    setValue,
-    formState: { errors, isSubmitting },
-  } = useForm<AccountFormData>({
-    resolver: zodResolver(AccountSchema),
-    defaultValues: { imap_port: 993, imap_secure: true },
-  });
+  // Wizard state
+  const [wizardStep, setWizardStep] = useState<1 | 2>(1);
+  const [selectedProvider, setSelectedProvider] = useState<ProviderId | null>(null);
+  const [wizardEmail, setWizardEmail] = useState("");
+  const [wizardPassword, setWizardPassword] = useState("");
+  const [wizardHost, setWizardHost] = useState("");
+  const [wizardPort, setWizardPort] = useState(993);
+  const [wizardSaving, setWizardSaving] = useState(false);
+
+  // legacy hook-form (kept for "other" provider extra fields)
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } =
+    useForm<AccountFormData>({ resolver: zodResolver(AccountSchema), defaultValues: { imap_port: 993, imap_secure: true } });
+
+  const resetWizard = () => {
+    setWizardStep(1);
+    setSelectedProvider(null);
+    setWizardEmail("");
+    setWizardPassword("");
+    setWizardHost("");
+    setWizardPort(993);
+  };
 
   const loadAccounts = useCallback(async () => {
     setLoadingAccounts(true);
@@ -557,6 +580,43 @@ export default function EmailPage() {
       loadAccounts();
     } catch {
       toast.error("Грешка при добавяне на акаунта");
+    }
+  };
+
+  const handleWizardSave = async () => {
+    if (!selectedProvider || !wizardEmail || !wizardPassword) return;
+    const provider = PROVIDERS[selectedProvider];
+    const host = selectedProvider === "other" ? wizardHost : provider.imap_host;
+    if (!host) { toast.error("Въведете IMAP хост"); return; }
+
+    setWizardSaving(true);
+    try {
+      const res = await fetch("/api/email/accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          display_name: provider.label === "Друг" ? wizardEmail : `${provider.label} (${wizardEmail})`,
+          email_address: wizardEmail,
+          imap_host: host,
+          imap_port: selectedProvider === "other" ? wizardPort : provider.imap_port,
+          imap_secure: provider.imap_secure,
+          username: wizardEmail,
+          password: wizardPassword,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error || "Грешка при добавяне");
+        return;
+      }
+      toast.success("Имейл акаунтът е свързан успешно!");
+      setDialogOpen(false);
+      resetWizard();
+      loadAccounts();
+    } catch {
+      toast.error("Грешка при свързване");
+    } finally {
+      setWizardSaving(false);
     }
   };
 
@@ -729,64 +789,123 @@ export default function EmailPage() {
         </TabsContent>
       </Tabs>
 
-      {/* ── Add Account Dialog ── */}
-      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) reset(); }}>
+      {/* ── Add Account Wizard ── */}
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetWizard(); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Добави имейл акаунт</DialogTitle>
-            <DialogDescription>Въведете IMAP настройките на вашия имейл акаунт</DialogDescription>
+            <DialogTitle>Свържи имейл акаунт</DialogTitle>
+            <DialogDescription>
+              {wizardStep === 1 ? "Стъпка 1 от 2 — Избери доставчик" : "Стъпка 2 от 2 — Въведи данните си"}
+            </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit(handleAddAccount)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="display_name">Наименование</Label>
-              <Input id="display_name" placeholder="Работен Gmail" {...register("display_name")} />
-              {errors.display_name && <p className="text-xs text-red-400">{errors.display_name.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email_address">Имейл адрес</Label>
-              <Input id="email_address" type="email" placeholder="you@example.com" {...register("email_address")} />
-              {errors.email_address && <p className="text-xs text-red-400">{errors.email_address.message}</p>}
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="imap_host">IMAP хост</Label>
-                <Input id="imap_host" placeholder="imap.gmail.com" {...register("imap_host")} />
-                {errors.imap_host && <p className="text-xs text-red-400">{errors.imap_host.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="imap_port">Порт</Label>
-                <Input id="imap_port" type="number" placeholder="993" {...register("imap_port", { valueAsNumber: true })} />
+
+          {/* Step 1: Provider selection */}
+          {wizardStep === 1 && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                {(Object.entries(PROVIDERS) as [ProviderId, typeof PROVIDERS[ProviderId]][]).map(([id, p]) => (
+                  <button
+                    key={id}
+                    onClick={() => { setSelectedProvider(id); setWizardStep(2); }}
+                    className="flex items-center gap-3 rounded-lg border border-border px-4 py-3 text-left hover:border-violet-500 hover:bg-violet-500/5 transition-colors"
+                  >
+                    <Mail className="h-5 w-5 text-violet-400 shrink-0" />
+                    <span className="font-medium text-sm">{p.label}</span>
+                  </button>
+                ))}
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                role="switch"
-                aria-checked={imapSecure}
-                onClick={() => setValue("imap_secure", !imapSecure)}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${imapSecure ? "bg-violet-600" : "bg-input"}`}
-              >
-                <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${imapSecure ? "translate-x-5" : "translate-x-0"}`} />
-              </button>
-              <Label>SSL/TLS шифроване</Label>
+          )}
+
+          {/* Step 2: Email + password */}
+          {wizardStep === 2 && selectedProvider && (
+            <div className="space-y-4">
+              {/* Gmail App Password guide */}
+              {selectedProvider === "gmail" && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-1">
+                  <p className="text-sm font-medium text-amber-400">⚠️ Gmail изисква специална парола</p>
+                  <p className="text-xs text-muted-foreground">
+                    Не използвайте обичайната си парола. Вместо това:
+                  </p>
+                  <ol className="text-xs text-muted-foreground space-y-0.5 list-decimal list-inside">
+                    <li>Отворете <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="text-violet-400 underline">myaccount.google.com/apppasswords</a></li>
+                    <li>Напишете „TravelInvoices" → натиснете „Създаване"</li>
+                    <li>Копирайте показаната парола (16 символа без интервали)</li>
+                  </ol>
+                </div>
+              )}
+
+              {/* Abv.bg guide */}
+              {selectedProvider === "abv" && (
+                <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-3">
+                  <p className="text-xs text-muted-foreground">
+                    Използвайте обичайната си парола за Abv.bg. Ако не работи, влезте в Abv.bg → Настройки → Сигурност и активирайте достъп за приложения.
+                  </p>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="w-email">Имейл адрес</Label>
+                <Input
+                  id="w-email"
+                  type="email"
+                  placeholder="вашия@имейл.com"
+                  value={wizardEmail}
+                  onChange={(e) => setWizardEmail(e.target.value)}
+                  autoFocus
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="w-password">
+                  {selectedProvider === "gmail" ? "App Password (16 символа)" : "Парола"}
+                </Label>
+                <Input
+                  id="w-password"
+                  type="password"
+                  placeholder="••••••••••••••••"
+                  value={wizardPassword}
+                  onChange={(e) => setWizardPassword(e.target.value)}
+                />
+              </div>
+
+              {/* Extra fields only for "other" */}
+              {selectedProvider === "other" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="w-host">IMAP хост</Label>
+                    <Input
+                      id="w-host"
+                      placeholder="imap.example.com"
+                      value={wizardHost}
+                      onChange={(e) => setWizardHost(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="w-port">Порт</Label>
+                    <Input
+                      id="w-port"
+                      type="number"
+                      value={wizardPort}
+                      onChange={(e) => setWizardPort(Number(e.target.value))}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => setWizardStep(1)}>← Назад</Button>
+                <Button
+                  onClick={handleWizardSave}
+                  disabled={wizardSaving || !wizardEmail || !wizardPassword}
+                  className="bg-violet-600 hover:bg-violet-700"
+                >
+                  {wizardSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Свържи акаунта
+                </Button>
+              </DialogFooter>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="username">Потребителско име</Label>
-              <Input id="username" placeholder="you@example.com" {...register("username")} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Парола / App Password</Label>
-              <Input id="password" type="password" placeholder="••••••••••••" {...register("password")} />
-              <p className="text-xs text-muted-foreground">За Gmail с 2FA използвайте App Password</p>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => { setDialogOpen(false); reset(); }}>Отказ</Button>
-              <Button type="submit" disabled={isSubmitting} className="bg-violet-600 hover:bg-violet-700">
-                {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Добави
-              </Button>
-            </DialogFooter>
-          </form>
+          )}
         </DialogContent>
       </Dialog>
 
