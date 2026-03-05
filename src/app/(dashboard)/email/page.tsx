@@ -637,10 +637,14 @@ export default function EmailPage() {
     }
   };
 
-  const handleSync = async () => {
+  const handleSync = async (force = false) => {
     setSyncing(true);
     try {
-      const res = await fetch("/api/email/sync", { method: "POST" });
+      const res = await fetch("/api/email/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ force }),
+      });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || "Грешка при синхронизация"); return; }
       if (data.newAttachments > 0) {
@@ -702,19 +706,35 @@ export default function EmailPage() {
             <p className="text-sm text-muted-foreground">
               {attachments.length > 0 && `${attachments.length} файла от ${Object.keys(groupAttachments(attachments)).length} контрагента`}
             </p>
-            <Button
-              onClick={handleSync}
-              disabled={syncing || accounts.length === 0}
-              variant="outline"
-              size="sm"
-            >
-              {syncing ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4 mr-2" />
-              )}
-              {syncing ? "Синхронизира..." : "Провери сега"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => handleSync(false)}
+                disabled={syncing || accounts.length === 0}
+                variant="outline"
+                size="sm"
+              >
+                {syncing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                {syncing ? "Синхронизира..." : "Провери сега"}
+              </Button>
+              <Button
+                onClick={() => handleSync(true)}
+                disabled={syncing || accounts.length === 0}
+                variant="outline"
+                size="sm"
+                title="Сканира последните 30 дни наново"
+              >
+                {syncing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Пълно сканиране
+              </Button>
+            </div>
           </div>
 
           {loadingAttachments ? (

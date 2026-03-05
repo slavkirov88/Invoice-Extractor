@@ -15,9 +15,11 @@ export async function POST(request: NextRequest) {
   }
 
   let accountId: string | undefined;
+  let force = false;
   try {
     const body = await request.json();
     accountId = body?.accountId;
+    force = body?.force === true;
   } catch {
     // body is optional
   }
@@ -48,7 +50,7 @@ export async function POST(request: NextRequest) {
   const errors: string[] = [];
 
   for (const id of accountIds) {
-    const result = await syncEmailAccount(id, user.id);
+    const result = await syncEmailAccount(id, user.id, force);
     totalNew += result.newAttachments;
     if (result.error) {
       errors.push(result.error);

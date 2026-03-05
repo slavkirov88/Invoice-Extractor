@@ -47,7 +47,8 @@ function getAttachmentParts(part: ImapPart, result: ImapPart[] = []): ImapPart[]
 
 export async function syncEmailAccount(
   accountId: string,
-  userId: string
+  userId: string,
+  force = false
 ): Promise<{ newAttachments: number; error?: string }> {
   const supabase = await createClient();
 
@@ -87,12 +88,16 @@ export async function syncEmailAccount(
     const lock = await client.getMailboxLock('INBOX');
 
     try {
-      const sinceDate = account.last_synced_at
-        ? new Date(account.last_synced_at)
-        : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const sinceDate = force || !account.last_synced_at
+        ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+        : new Date(account.last_synced_at);
+
+      console.log(`[IMAP sync] account=${accountId} force=${force} sinceDate=${sinceDate.toISOString()}`);
 
       const searchResult = await client.search({ since: sinceDate }, { uid: true });
       const uidList: number[] = !searchResult || (searchResult as unknown) === false ? [] : (searchResult as number[]);
+
+      console.log(`[IMAP sync] found ${uidList.length} messages since ${sinceDate.toISOString()}`);
 
       if (uidList.length > 0) {
         const messages = await client.fetchAll(
@@ -107,6 +112,7 @@ export async function syncEmailAccount(
           if (!bodyStructure) continue;
 
           const attachmentParts = getAttachmentParts(bodyStructure);
+          console.log(`[IMAP sync] msg=${messageId} subject="${message.envelope?.subject}" attachmentParts=${attachmentParts.length} bodyStructure=${JSON.stringify(bodyStructure)}`);
           if (attachmentParts.length === 0) continue;
 
           // Skip already-synced messages
