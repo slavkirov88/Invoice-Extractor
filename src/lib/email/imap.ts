@@ -129,6 +129,13 @@ export async function syncEmailAccount(
             if (!part.part) continue;
 
             const filename = getFilename(part) || 'attachment.bin';
+            // Sanitize for Supabase Storage path (ASCII only, no spaces/special chars)
+            const safeFilename = filename
+              .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove diacritics
+              .replace(/[^\x00-\x7F]/g, '_')                   // replace non-ASCII
+              .replace(/[^a-zA-Z0-9._-]/g, '_')                // replace special chars
+              .replace(/_+/g, '_')                              // collapse multiple _
+              .replace(/^_|_$/g, '');                           // trim leading/trailing _
 
             // Fetch the binary data for this part
             const partData = await client.fetchOne(
@@ -145,7 +152,7 @@ export async function syncEmailAccount(
             if (!buf || buf.length === 0) continue;
 
             const attachmentId = crypto.randomUUID();
-            const storagePath = `${userId}/${attachmentId}/${filename}`;
+            const storagePath = `${userId}/${attachmentId}/${safeFilename || 'attachment.bin'}`;
 
             const { error: uploadError } = await supabase.storage
               .from('email-attachments')
