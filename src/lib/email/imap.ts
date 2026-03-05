@@ -1,6 +1,14 @@
 import { ImapFlow } from 'imapflow';
-import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { decryptPassword } from './encryption';
+
+function getAdminSupabase() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
 
 // imapflow body structure object
 interface ImapPart {
@@ -50,7 +58,7 @@ export async function syncEmailAccount(
   userId: string,
   force = false
 ): Promise<{ newAttachments: number; error?: string }> {
-  const supabase = await createClient();
+  const supabase = getAdminSupabase();
 
   const { data: account, error: accountError } = await supabase
     .from('email_accounts')
