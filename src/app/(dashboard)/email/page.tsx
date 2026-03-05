@@ -46,6 +46,8 @@ import {
   ChevronRight,
   FileText,
   FilePlus,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import type { EmailAccount, EmailAttachment, Protocol } from "@/types";
 
@@ -506,6 +508,7 @@ export default function EmailPage() {
   const [wizardHost, setWizardHost] = useState("");
   const [wizardPort, setWizardPort] = useState(993);
   const [wizardSaving, setWizardSaving] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // legacy hook-form (kept for "other" provider extra fields)
   const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } =
@@ -860,13 +863,28 @@ export default function EmailPage() {
                 <Label htmlFor="w-password">
                   {selectedProvider === "gmail" ? "App Password (16 символа)" : "Парола"}
                 </Label>
-                <Input
-                  id="w-password"
-                  type="password"
-                  placeholder="••••••••••••••••"
-                  value={wizardPassword}
-                  onChange={(e) => setWizardPassword(e.target.value)}
-                />
+                <div className="relative">
+                  <Input
+                    id="w-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••••••••••"
+                    value={wizardPassword}
+                    onChange={(e) => setWizardPassword(e.target.value.replace(/\s/g, ""))}
+                    className="pr-10 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {selectedProvider === "gmail" && wizardPassword && (
+                  <p className={`text-xs ${wizardPassword.length === 16 ? "text-green-500" : "text-amber-400"}`}>
+                    {wizardPassword.length}/16 символа {wizardPassword.length === 16 ? "✓" : "— трябва да са точно 16"}
+                  </p>
+                )}
               </div>
 
               {/* Extra fields only for "other" */}
