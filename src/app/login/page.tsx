@@ -51,13 +51,24 @@ export default function LoginPage() {
     setLoading(true);
     reset();
 
-    const { error } = await supabase.auth.signUp({ email, password });
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (error) {
-      setError(error.message);
-    } else {
-      setMessage("Проверете имейла си за потвърждение на регистрацията.");
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Грешка при регистрация.");
+      } else {
+        setMessage("Проверете имейла си за потвърждение на регистрацията.");
+      }
+    } catch {
+      setError("Грешка при свързване със сървъра.");
     }
+
     setLoading(false);
   };
 
