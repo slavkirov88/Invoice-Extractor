@@ -61,18 +61,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Create the user via regular signUp — this triggers the confirmation email
-  const anonClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
-  const { error: createError } = await anonClient.auth.signUp({
+  // Create the user — Supabase sends confirmation email automatically
+  const { error: createError } = await supabase.auth.admin.createUser({
     email,
     password,
-    options: {
-      emailRedirectTo: "https://www.travelinvoices.com/auth/callback",
-    },
+    email_confirm: false,
   });
 
   if (createError) {
