@@ -631,33 +631,15 @@ function VideoSection() {
 
         <ScrollReveal>
           <div className="relative mx-auto max-w-4xl">
-            <div className="relative aspect-video rounded-2xl border border-border bg-card overflow-hidden group cursor-pointer">
-              {/* Placeholder for video */}
-              <div className="absolute inset-0 bg-gradient-to-br from-violet-600/20 to-indigo-600/20 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-violet-600 shadow-2xl shadow-violet-600/50 group-hover:scale-110 transition-transform">
-                    <Play className="h-8 w-8 text-white ml-1" />
-                  </div>
-                  <span className="text-sm text-muted-foreground">
-                    Кликнете за да пуснете демото
-                  </span>
-                </div>
-              </div>
-              {/* Overlay with simulated app screenshot */}
-              <div className="absolute inset-4 rounded-lg bg-card/80 backdrop-blur-sm border border-border/50 opacity-50">
-                <div className="p-4">
-                  <div className="h-4 w-32 bg-foreground/10 rounded mb-3" />
-                  <div className="h-3 w-48 bg-foreground/5 rounded mb-6" />
-                  <div className="grid grid-cols-3 gap-3">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="h-20 bg-foreground/5 rounded-lg" />
-                    ))}
-                  </div>
-                </div>
-              </div>
+            <div className="relative aspect-video rounded-2xl border border-border overflow-hidden shadow-2xl">
+              <iframe
+                src="https://www.loom.com/embed/2419bf8326504af29fea0de0d0a92197?hide_owner=true&hide_share=true&hide_title=true&hideEmbedTopBar=true"
+                allowFullScreen
+                className="absolute inset-0 w-full h-full"
+              />
             </div>
             {/* Glow effect */}
-            <div className="absolute -inset-4 bg-violet-600/5 rounded-3xl blur-2xl -z-10" />
+            <div className="absolute -inset-4 bg-violet-600/10 rounded-3xl blur-2xl -z-10" />
           </div>
         </ScrollReveal>
       </div>
