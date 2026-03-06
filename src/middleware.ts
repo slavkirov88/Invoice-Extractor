@@ -47,6 +47,7 @@ export async function middleware(request: NextRequest) {
       request.nextUrl.pathname.startsWith("/login") ||
       request.nextUrl.pathname.startsWith("/auth") ||
       request.nextUrl.pathname.startsWith("/api/chat") ||
+      request.nextUrl.pathname.startsWith("/api/auth/register") ||
       request.nextUrl.pathname.startsWith("/api/stripe/webhook") ||
       request.nextUrl.pathname.startsWith("/terms") ||
       request.nextUrl.pathname.startsWith("/privacy") ||
