@@ -27,6 +27,7 @@ import {
   CreditCard,
   BadgeCheck,
   TrendingDown,
+  Mail,
 } from "lucide-react";
 import { ScrollReveal } from "./ScrollReveal";
 import { AnimatedCounter } from "./AnimatedCounter";
@@ -427,7 +428,7 @@ function ProblemSection() {
     {
       icon: FileText,
       title: "Хаос от документи",
-      desc: "Excel таблици, хартиени фактури, липсващи протоколи — трудно за проследяване",
+      desc: "Фактури по имейли, Excel таблици, хартиени документи — разпилени навсякъде и трудно за проследяване",
     },
   ];
 
@@ -501,6 +502,12 @@ function FeaturesSection() {
       title: "Бързодействие",
       desc: "От качване на PDF до готов протокол — под 30 секунди. Обработете стотици фактури за минути.",
       gradient: "from-teal-600 to-violet-600",
+    },
+    {
+      icon: Mail,
+      title: "Имейл интеграция",
+      desc: "Свържете Gmail, Abv.bg, Outlook и др. — системата автоматично открива фактури в прикачените файлове и ги организира по контрагент и месец. Край на ръчното изтегляне.",
+      gradient: "from-violet-600 to-pink-600",
     },
   ];
 
@@ -673,7 +680,7 @@ function BeforeAfterSection() {
                   "15–30 часа месечно за протоколи",
                   "Грешки при маржовия метод",
                   "Стрес при данъчни проверки",
-                  "Хартиени фактури се губят",
+                  "Фактури по имейли — търсите ги с часове",
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-3 text-muted-foreground">
                     <X className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
@@ -697,7 +704,7 @@ function BeforeAfterSection() {
                   "Под 1 час за всичко — месечно",
                   "99% точност без човешки грешки",
                   "Винаги готови за НАП проверка",
-                  "Всичко дигитализирано и на едно място",
+                  "Фактурите от имейли — синхронизирани автоматично",
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-3 text-muted-foreground">
                     <CheckCircle2 className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
