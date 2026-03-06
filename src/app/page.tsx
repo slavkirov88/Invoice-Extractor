@@ -24,7 +24,7 @@ const jsonLd = {
     {
       "@type": "Offer",
       name: "Професионален план",
-      price: "50",
+      price: "20",
       priceCurrency: "EUR",
       priceValidUntil: "2027-12-31",
       availability: "https://schema.org/InStock",
@@ -32,7 +32,7 @@ const jsonLd = {
     {
       "@type": "Offer",
       name: "Бизнес план",
-      price: "100",
+      price: "40",
       priceCurrency: "EUR",
       priceValidUntil: "2027-12-31",
       availability: "https://schema.org/InStock",

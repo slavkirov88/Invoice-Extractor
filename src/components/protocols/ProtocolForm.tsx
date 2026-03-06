@@ -39,6 +39,8 @@ export function ProtocolForm({ onSuccess }: ProtocolFormProps) {
     reference_number: "",
     protocol_type: "eu" as "eu" | "non_eu" | "mixed",
     linked_protocol_number: "",
+    compiled_by: "",
+    approved_by: "",
   });
 
   // Auto tax_rate based on protocol type
@@ -102,6 +104,8 @@ export function ProtocolForm({ onSuccess }: ProtocolFormProps) {
         linked_protocol_number: formData.linked_protocol_number
           ? parseInt(formData.linked_protocol_number)
           : null,
+        compiled_by: formData.compiled_by,
+        approved_by: formData.approved_by,
         user_id: user.id,
       })
       .select()
@@ -286,6 +290,31 @@ export function ProtocolForm({ onSuccess }: ProtocolFormProps) {
                     linked_protocol_number: e.target.value,
                   })
                 }
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="compiled_by">Съставил</Label>
+              <Input
+                id="compiled_by"
+                value={formData.compiled_by}
+                onChange={(e) =>
+                  setFormData({ ...formData, compiled_by: e.target.value })
+                }
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="approved_by">Одобрил</Label>
+              <Input
+                id="approved_by"
+                value={formData.approved_by}
+                onChange={(e) =>
+                  setFormData({ ...formData, approved_by: e.target.value })
+                }
+                required
               />
             </div>
           </div>

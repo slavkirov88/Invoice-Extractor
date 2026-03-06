@@ -64,6 +64,7 @@ function AddInvoiceContent() {
     documentNumber: "",
     issueDate: "",
     amount: "",
+    counterparty_vat_id: "",
   });
   const [credits, setCredits] = useState<UserCredits | null>(null);
   const [creditsLoading, setCreditsLoading] = useState(true);
@@ -121,6 +122,7 @@ function AddInvoiceContent() {
         documentNumber: data.documentNumber,
         issueDate: data.issueDate,
         amount: data.amount.toString(),
+        counterparty_vat_id: data.counterparty_vat_id || "",
       });
       setStep("review");
       toast.success("Данните са извлечени успешно");
@@ -182,6 +184,7 @@ function AddInvoiceContent() {
       document_type: "Фактура",
       document_number: editableData.documentNumber,
       issue_date: editableData.issueDate,
+      counterparty_vat_id: editableData.counterparty_vat_id || null,
       amount: parseFloat(editableData.amount),
       invoice_category: invoiceType,
       vat_rate: vatRate,
@@ -375,6 +378,19 @@ function AddInvoiceContent() {
                     }
                   />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label>ЕИК на контрагент</Label>
+                <Input
+                  value={editableData.counterparty_vat_id}
+                  onChange={(e) =>
+                    setEditableData({
+                      ...editableData,
+                      counterparty_vat_id: e.target.value,
+                    })
+                  }
+                  placeholder="напр. BG123456789 или 999999999"
+                />
               </div>
             </CardContent>
           </Card>

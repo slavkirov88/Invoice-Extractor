@@ -509,6 +509,7 @@ export default function EmailPage() {
   const [wizardPort, setWizardPort] = useState(993);
   const [wizardSaving, setWizardSaving] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [wizardSecure, setWizardSecure] = useState(true);
 
   // legacy hook-form (kept for "other" provider extra fields)
   const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } =
@@ -521,6 +522,7 @@ export default function EmailPage() {
     setWizardPassword("");
     setWizardHost("");
     setWizardPort(993);
+    setWizardSecure(true);
   };
 
   const loadAccounts = useCallback(async () => {
@@ -602,7 +604,7 @@ export default function EmailPage() {
           email_address: wizardEmail,
           imap_host: host,
           imap_port: selectedProvider === "other" ? wizardPort : provider.imap_port,
-          imap_secure: provider.imap_secure,
+          imap_secure: selectedProvider === "other" ? wizardSecure : provider.imap_secure,
           username: wizardEmail,
           password: wizardPassword,
         }),
@@ -909,7 +911,7 @@ export default function EmailPage() {
 
               {/* Extra fields only for "other" */}
               {selectedProvider === "other" && (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-3">
                   <div className="space-y-2">
                     <Label htmlFor="w-host">IMAP хост</Label>
                     <Input
@@ -919,14 +921,35 @@ export default function EmailPage() {
                       onChange={(e) => setWizardHost(e.target.value)}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="w-port">Порт</Label>
-                    <Input
-                      id="w-port"
-                      type="number"
-                      value={wizardPort}
-                      onChange={(e) => setWizardPort(Number(e.target.value))}
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="w-port">Порт</Label>
+                      <Input
+                        id="w-port"
+                        type="number"
+                        value={wizardPort}
+                        onChange={(e) => setWizardPort(Number(e.target.value))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Защита</Label>
+                      <Select
+                        value={wizardSecure ? "ssl" : "starttls"}
+                        onValueChange={(v) => {
+                          const ssl = v === "ssl";
+                          setWizardSecure(ssl);
+                          setWizardPort(ssl ? 993 : 143);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ssl">SSL/TLS (993)</SelectItem>
+                          <SelectItem value="starttls">STARTTLS / Без (143)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
               )}

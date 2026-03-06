@@ -177,7 +177,13 @@ export function ExcelExport({
 
     row += 3;
     ws.getCell(`B${row}`).value = "чл.140, ал.1 от ЗДДС";
-    ws.getCell(`H${row}`).value = "Съставил:";
+    ws.getCell(`G${row}`).value = "Съставил:";
+    ws.getCell(`G${row}`).font = { bold: true };
+    ws.getCell(`H${row}`).value = protocol.compiled_by || "";
+    row++;
+    ws.getCell(`G${row}`).value = "Одобрил:";
+    ws.getCell(`G${row}`).font = { bold: true };
+    ws.getCell(`H${row}`).value = protocol.approved_by || "";
 
     // Download
     const buffer = await wb.xlsx.writeBuffer();

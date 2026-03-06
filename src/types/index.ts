@@ -9,6 +9,8 @@ export interface Protocol {
   reference_number: string | null;
   protocol_type: "eu" | "non_eu" | "mixed" | "standard" | "commission";
   tax_rate: number;
+  compiled_by: string | null;
+  approved_by: string | null;
   user_id: string;
   created_at: string;
   updated_at: string;
@@ -35,6 +37,7 @@ export interface ExtractedInvoiceData {
   documentNumber: string;
   issueDate: string;
   amount: number;
+  counterparty_vat_id: string | null;
 }
 
 export interface VatCalculation {

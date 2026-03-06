@@ -91,8 +91,9 @@ export async function POST(request: NextRequest) {
 1. Номер на документа
 2. Дата на издаване (YYYY-MM-DD)
 3. Обща стойност в евро. Ако е в BGN, раздели на 1.95583.
+4. ЕИК/VAT номер на ИЗДАТЕЛЯ (ЕИК, Булстат, VAT, ДДС №). С "BG" prefix ако е български. Ако няма — "999999999".
 
-Върни САМО JSON: {"documentNumber": "...", "issueDate": "YYYY-MM-DD", "amount": 0.00}
+Върни САМО JSON: {"documentNumber": "...", "issueDate": "YYYY-MM-DD", "amount": 0.00, "counterparty_vat_id": "..."}
 
 ${ocrText}`,
         }],
@@ -105,7 +106,7 @@ ${ocrText}`,
         messages: [{
           role: "user",
           content: [
-            { type: "text", text: 'Извлечи: номер, дата (YYYY-MM-DD), сума EUR. Върни САМО JSON: {"documentNumber":"...","issueDate":"YYYY-MM-DD","amount":0.00}' },
+            { type: "text", text: 'Извлечи: номер, дата (YYYY-MM-DD), сума EUR, ЕИК на издателя (с "BG" prefix ако е български, иначе "999999999"). Върни САМО JSON: {"documentNumber":"...","issueDate":"YYYY-MM-DD","amount":0.00,"counterparty_vat_id":"..."}' },
             { type: "document_url", documentUrl: `data:application/pdf;base64,${base64}` },
           ],
         }],
@@ -128,6 +129,7 @@ ${ocrText}`,
       documentNumber: String(parsed.documentNumber || ""),
       issueDate: String(parsed.issueDate || ""),
       amount: Number(parsed.amount) || 0,
+      counterparty_vat_id: String(parsed.counterparty_vat_id || "999999999"),
     });
 
   } catch (err) {

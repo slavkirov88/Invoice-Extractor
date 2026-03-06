@@ -120,6 +120,10 @@ export function PdfExport({
       finalY2 + 36
     );
 
+    const pageWidth = doc.internal.pageSize.getWidth();
+    doc.text(`Съставил: ${protocol.compiled_by || ""}`, pageWidth - 80, finalY2 + 52);
+    doc.text(`Одобрил: ${protocol.approved_by || ""}`, pageWidth - 80, finalY2 + 60);
+
     doc.save(`Protokol_${protocol.protocol_number}.pdf`);
   };
 

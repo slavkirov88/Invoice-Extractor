@@ -81,13 +81,14 @@ export async function POST(request: NextRequest) {
 1. Номер на документа (фактура №, Invoice No, Document No, и т.н.)
 2. Дата на издаване (във формат YYYY-MM-DD)
 3. Обща стойност/сума в евро (само числото, без валута). Ако сумата е в BGN/лева, конвертирай в EUR по курс 1.95583 (раздели на 1.95583). Ако е в друга валута, върни оригиналната стойност.
+4. ЕИК/VAT номер на ИЗДАТЕЛЯ на документа (търси: ЕИК, Булстат, VAT, ДДС №, UIC, Tax ID). Ако намериш — върни без интервали, с "BG" prefix ако е български (напр. "BG123456789"). Ако НЕ намериш — върни "999999999".
 
 ВАЖНО:
 - Датата може да е в различни формати — винаги върни YYYY-MM-DD
 - Стойността може да е означена като "Total", "Обща стойност", "Amount", "Сума", "ВСИЧКО", "Grand Total" и т.н.
 - Ако не можеш да намериш стойност, върни 0
 
-Върни САМО JSON: {"documentNumber": "...", "issueDate": "YYYY-MM-DD", "amount": 0.00}
+Върни САМО JSON: {"documentNumber": "...", "issueDate": "YYYY-MM-DD", "amount": 0.00, "counterparty_vat_id": "..."}
 
 Текст на документа:
 ${ocrText}`,
@@ -111,8 +112,9 @@ ${ocrText}`,
 1. Номер на документа
 2. Дата на издаване (YYYY-MM-DD)
 3. Обща стойност в евро (число). BGN → EUR по курс 1.95583 (раздели на 1.95583).
+4. ЕИК/VAT номер на ИЗДАТЕЛЯ (ЕИК, Булстат, VAT, ДДС №). С "BG" prefix ако е български. Ако няма — "999999999".
 
-Върни САМО JSON: {"documentNumber": "...", "issueDate": "YYYY-MM-DD", "amount": 0.00}`,
+Върни САМО JSON: {"documentNumber": "...", "issueDate": "YYYY-MM-DD", "amount": 0.00, "counterparty_vat_id": "..."}`,
               },
               {
                 type: "document_url",
@@ -150,6 +152,7 @@ ${ocrText}`,
       documentNumber: String(parsed.documentNumber || ""),
       issueDate: String(parsed.issueDate || ""),
       amount: Number(parsed.amount) || 0,
+      counterparty_vat_id: String(parsed.counterparty_vat_id || "999999999"),
     });
   } catch (error) {
     console.error("Extract invoice error:", error);

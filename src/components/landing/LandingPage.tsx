@@ -277,7 +277,7 @@ function HeroSection() {
           </span>
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-            После от 50€/месец
+            После от 20€/месец
           </span>
         </motion.div>
 
@@ -724,7 +724,7 @@ function PricingSection() {
   const plans = [
     {
       name: "Професионален",
-      price: "50",
+      price: "20",
       period: "/месец",
       description: "За средни агенции. Всичко необходимо.",
       trial: "7 дни безплатно",
@@ -743,7 +743,7 @@ function PricingSection() {
     },
     {
       name: "Бизнес",
-      price: "100",
+      price: "40",
       period: "/месец",
       description: "За големи агенции. Неограничен обем.",
       trial: "7 дни безплатно",
@@ -995,7 +995,7 @@ function CTASection() {
                 </Link>
               </div>
               <p className="mt-6 text-sm text-white/60">
-                7 дни безплатно &middot; Откажете се по всяко време &middot; После от 50€/мес
+                7 дни безплатно &middot; Откажете се по всяко време &middot; После от 20€/мес
               </p>
             </div>
           </div>
