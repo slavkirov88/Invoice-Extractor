@@ -208,6 +208,15 @@ export async function syncEmailAccount(
     const response = errObj?.response as string | undefined;
     const command = errObj?.command as string | undefined;
     const base = err instanceof Error ? err.message : String(err);
+
+    // Detect SSL/STARTTLS mismatch and return actionable message
+    if (base.includes('packet length too long') || base.includes('tls_get_more_records') || base.includes('wrong version number')) {
+      return { newAttachments, error: 'SSL грешка: сървърът не очаква криптирана връзка. Изтрийте акаунта и го добавете отново с "STARTTLS / Без (143)" вместо SSL/TLS.' };
+    }
+    if (base.includes('ETIMEDOUT') || base.includes('ECONNREFUSED') || base.includes('ENOTFOUND')) {
+      return { newAttachments, error: 'Неуспешна връзка: проверете IMAP хоста и порта.' };
+    }
+
     const detail = [command && `команда: ${command}`, response && `отговор: ${response}`]
       .filter(Boolean).join(', ');
     const errorMsg = detail ? `${base} (${detail})` : base;

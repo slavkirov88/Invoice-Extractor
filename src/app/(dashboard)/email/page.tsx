@@ -506,10 +506,10 @@ export default function EmailPage() {
   const [wizardEmail, setWizardEmail] = useState("");
   const [wizardPassword, setWizardPassword] = useState("");
   const [wizardHost, setWizardHost] = useState("");
-  const [wizardPort, setWizardPort] = useState(993);
+  const [wizardPort, setWizardPort] = useState(143);
   const [wizardSaving, setWizardSaving] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [wizardSecure, setWizardSecure] = useState(true);
+  const [wizardSecure, setWizardSecure] = useState(false);
 
   // legacy hook-form (kept for "other" provider extra fields)
   const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } =
@@ -521,8 +521,8 @@ export default function EmailPage() {
     setWizardEmail("");
     setWizardPassword("");
     setWizardHost("");
-    setWizardPort(993);
-    setWizardSecure(true);
+    setWizardPort(143);
+    setWizardSecure(false);
   };
 
   const loadAccounts = useCallback(async () => {
