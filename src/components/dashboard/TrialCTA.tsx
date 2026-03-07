@@ -15,7 +15,7 @@ export function TrialCTA() {
     try {
       const priceId =
         process.env.NEXT_PUBLIC_STRIPE_PROFESSIONAL_PRICE_ID ||
-        "price_1T4cIzRt9H8Dfn2r2sdoikbP";
+        "price_1T8NYgRt9H8Dfn2rW1Qg9Aue";
 
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
@@ -74,7 +74,7 @@ export function TrialCTA() {
             </span>
             <span className="flex items-center gap-1.5">
               <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              После 50€/месец
+              После 20€/месец
             </span>
             <span className="flex items-center gap-1.5">
               <CheckCircle2 className="h-4 w-4 text-emerald-500" />

@@ -58,7 +58,7 @@ export default function SettingsPage() {
     try {
       const priceId =
         process.env.NEXT_PUBLIC_STRIPE_PROFESSIONAL_PRICE_ID ||
-        "price_1T4cIzRt9H8Dfn2r2sdoikbP";
+        "price_1T8NYgRt9H8Dfn2rW1Qg9Aue";
 
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
@@ -209,7 +209,7 @@ export default function SettingsPage() {
                 </span>
                 <span className="flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                  После 50€/мес
+                  После 20€/мес
                 </span>
                 <span className="flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3 text-emerald-500" />
