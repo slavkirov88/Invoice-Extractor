@@ -40,6 +40,24 @@ const rotatingWords = [
   "без усилие",
 ];
 
+function AnnouncementBar() {
+  return (
+    <div className="fixed top-0 left-0 right-0 z-[60] h-10 bg-gradient-to-r from-violet-700 via-violet-600 to-violet-700 flex items-center justify-center px-4">
+      <p className="text-xs sm:text-sm text-white font-medium text-center leading-none">
+        <span className="mr-1.5">🎯</span>
+        Специализирано за{" "}
+        <span className="font-bold">туристически агенции</span> и техните счетоводители
+        <a
+          href="#pricing"
+          className="ml-3 inline-flex items-center gap-1 font-semibold underline underline-offset-2 hover:text-violet-200 transition-colors"
+        >
+          Пробвай 7 дни безплатно →
+        </a>
+      </p>
+    </div>
+  );
+}
+
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -59,7 +77,7 @@ function Navbar() {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed top-10 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled || mobileOpen
           ? "bg-background backdrop-blur-xl border-b border-border shadow-lg"
           : "bg-background backdrop-blur-xl border-b border-border shadow-lg md:bg-transparent md:backdrop-blur-none md:border-b-0 md:shadow-none"
@@ -165,7 +183,7 @@ function HeroSection() {
   }, []);
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-[104px]">
       {/* Background effects */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(124,58,237,0.15),transparent_50%)]" />
@@ -194,7 +212,7 @@ function HeroSection() {
           className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-1.5 text-sm text-violet-300 mb-8"
         >
           <Sparkles className="h-4 w-4" />
-          <span>7 дни безплатен тест</span>
+          <span>Единственият инструмент, построен специално за туроператори по ЗДДС маржов метод</span>
         </motion.div>
 
         {/* Main heading */}
@@ -269,15 +287,15 @@ function HeroSection() {
         >
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-            7 дни безплатно
+            7 дни безплатно — без карта
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Shield className="h-4 w-4 text-emerald-500" />
+            30 дни гаранция за парите
           </span>
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-            Откажи се по всяко време с 1 клик
-          </span>
-          <span className="flex items-center gap-1.5">
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-            После от 20€/месец
+            От 20€/месец след теста
           </span>
         </motion.div>
 
@@ -1114,6 +1132,7 @@ function Footer() {
 export function LandingPage() {
   return (
     <div className="min-h-screen">
+      <AnnouncementBar />
       <Navbar />
       <HeroSection />
       <StatsBar />
