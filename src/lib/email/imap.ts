@@ -58,8 +58,12 @@ export async function syncEmailAccount(
   userId: string,
   force = false
 ): Promise<{ newAttachments: number; error?: string }> {
+  console.log(`[IMAP] ▶ syncEmailAccount start — accountId=${accountId} userId=${userId} force=${force}`);
+
   const supabase = getAdminSupabase();
 
+  // 1. Fetch account
+  console.log('[IMAP] 1/7 fetching account from DB...');
   const { data: account, error: accountError } = await supabase
     .from('email_accounts')
     .select('*')
@@ -68,16 +72,24 @@ export async function syncEmailAccount(
     .single();
 
   if (accountError || !account) {
+    console.error('[IMAP] ✗ Account not found:', accountError?.message);
     return { newAttachments: 0, error: 'Акаунтът не е намерен' };
   }
+  console.log(`[IMAP] ✓ Account found — email=${account.email_address} host=${account.imap_host}:${account.imap_port} secure=${account.imap_secure}`);
 
+  // 2. Decrypt password
+  console.log('[IMAP] 2/7 decrypting password...');
   let password: string;
   try {
     password = decryptPassword(account.encrypted_password);
-  } catch {
+    console.log('[IMAP] ✓ Password decrypted OK');
+  } catch (e) {
+    console.error('[IMAP] ✗ Decryption failed:', e);
     return { newAttachments: 0, error: 'Грешка при декриптиране на паролата' };
   }
 
+  // 3. Create IMAP client
+  console.log(`[IMAP] 3/7 creating IMAP client — ${account.imap_host}:${account.imap_port} secure=${account.imap_secure}`);
   const client = new ImapFlow({
     host: account.imap_host,
     port: Number(account.imap_port),
@@ -92,38 +104,54 @@ export async function syncEmailAccount(
   let newAttachments = 0;
 
   try {
+    // 4. Connect
+    console.log('[IMAP] 4/7 connecting...');
     await client.connect();
+    console.log('[IMAP] ✓ Connected to IMAP server');
+
     const lock = await client.getMailboxLock('INBOX');
+    console.log('[IMAP] ✓ INBOX locked');
 
     try {
       const sinceDate = force || !account.last_synced_at
         ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
         : new Date(account.last_synced_at);
 
-      console.log(`[IMAP sync] account=${accountId} force=${force} sinceDate=${sinceDate.toISOString()}`);
+      console.log(`[IMAP] 5/7 searching messages since ${sinceDate.toISOString()} (force=${force}, last_synced=${account.last_synced_at ?? 'never'})`);
 
+      // 5. Search
       const searchResult = await client.search({ since: sinceDate }, { uid: true });
       const uidList: number[] = !searchResult || (searchResult as unknown) === false ? [] : (searchResult as number[]);
+      console.log(`[IMAP] ✓ Search done — ${uidList.length} messages found`);
 
-      console.log(`[IMAP sync] found ${uidList.length} messages since ${sinceDate.toISOString()}`);
-
-      if (uidList.length > 0) {
+      if (uidList.length === 0) {
+        console.log('[IMAP] No messages to process — done');
+      } else {
+        // 6. Fetch messages
+        console.log(`[IMAP] 6/7 fetching envelopes + body structure for ${uidList.length} messages...`);
         const messages = await client.fetchAll(
           uidList,
           { envelope: true, bodyStructure: true, uid: true },
           { uid: true }
         );
+        console.log(`[IMAP] ✓ Fetched ${messages.length} messages`);
 
         for (const message of messages) {
           const messageId = message.envelope?.messageId || `uid-${message.uid}`;
+          const subject = message.envelope?.subject ?? '(no subject)';
           const bodyStructure = message.bodyStructure as ImapPart | undefined;
-          if (!bodyStructure) continue;
+
+          if (!bodyStructure) {
+            console.log(`[IMAP] msg="${subject}" — no bodyStructure, skipping`);
+            continue;
+          }
 
           const attachmentParts = getAttachmentParts(bodyStructure);
-          console.log(`[IMAP sync] msg=${messageId} subject="${message.envelope?.subject}" attachmentParts=${attachmentParts.length} bodyStructure=${JSON.stringify(bodyStructure)}`);
+          console.log(`[IMAP] msg="${subject}" id=${messageId} — ${attachmentParts.length} attachment(s)`);
+
           if (attachmentParts.length === 0) continue;
 
-          // Skip already-synced messages
+          // Check duplicate
           const { data: existing } = await supabase
             .from('email_attachments')
             .select('id')
@@ -131,33 +159,39 @@ export async function syncEmailAccount(
             .eq('email_message_id', messageId)
             .limit(1);
 
-          if (existing && existing.length > 0) continue;
+          if (existing && existing.length > 0) {
+            console.log(`[IMAP] msg="${subject}" — already synced, skipping`);
+            continue;
+          }
 
+          // 7. Process attachments
           for (const part of attachmentParts) {
             if (!part.part) continue;
 
             const filename = getFilename(part) || 'attachment.bin';
-            // Sanitize for Supabase Storage path (ASCII only, no spaces/special chars)
             const safeFilename = filename
-              .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove diacritics
-              .replace(/[^\x00-\x7F]/g, '_')                   // replace non-ASCII
-              .replace(/[^a-zA-Z0-9._-]/g, '_')                // replace special chars
-              .replace(/_+/g, '_')                              // collapse multiple _
-              .replace(/^_|_$/g, '');                           // trim leading/trailing _
+              .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+              .replace(/[^\x00-\x7F]/g, '_')
+              .replace(/[^a-zA-Z0-9._-]/g, '_')
+              .replace(/_+/g, '_')
+              .replace(/^_|_$/g, '');
 
-            // Fetch the binary data for this part
+            console.log(`[IMAP] 7/7 downloading attachment "${filename}" (part=${part.part} type=${part.type})`);
+
             const partData = await client.fetchOne(
               String(message.uid),
               { bodyParts: [part.part] },
               { uid: true }
             );
-            if (!partData) continue;
+            if (!partData) { console.log('[IMAP] ✗ fetchOne returned null'); continue; }
 
             const bpMap = (partData as unknown as { bodyParts?: Map<string, Buffer> }).bodyParts;
-            if (!bpMap) continue;
+            if (!bpMap) { console.log('[IMAP] ✗ bodyParts map missing'); continue; }
 
             const buf = bpMap.get(part.part);
-            if (!buf || buf.length === 0) continue;
+            if (!buf || buf.length === 0) { console.log('[IMAP] ✗ buffer empty'); continue; }
+
+            console.log(`[IMAP] ✓ Downloaded ${buf.length} bytes — uploading to storage...`);
 
             const attachmentId = crypto.randomUUID();
             const storagePath = `${userId}/${attachmentId}/${safeFilename || 'attachment.bin'}`;
@@ -170,9 +204,10 @@ export async function syncEmailAccount(
               });
 
             if (uploadError) {
-              console.error('Upload error:', uploadError.message);
+              console.error(`[IMAP] ✗ Storage upload failed for "${filename}":`, uploadError.message);
               continue;
             }
+            console.log(`[IMAP] ✓ Uploaded to storage: ${storagePath}`);
 
             const { error: insertError } = await supabase
               .from('email_attachments')
@@ -190,18 +225,26 @@ export async function syncEmailAccount(
                 storage_path: storagePath,
               });
 
-            if (!insertError) newAttachments++;
+            if (insertError) {
+              console.error(`[IMAP] ✗ DB insert failed for "${filename}":`, insertError.message);
+            } else {
+              console.log(`[IMAP] ✓ Saved to DB: "${filename}"`);
+              newAttachments++;
+            }
           }
         }
       }
     } finally {
       lock.release();
+      console.log('[IMAP] INBOX lock released');
     }
 
+    // Update last_synced_at
     await supabase
       .from('email_accounts')
       .update({ last_synced_at: new Date().toISOString() })
       .eq('id', accountId);
+    console.log('[IMAP] ✓ last_synced_at updated');
 
   } catch (err) {
     const errObj = err as Record<string, unknown>;
@@ -209,7 +252,8 @@ export async function syncEmailAccount(
     const command = errObj?.command as string | undefined;
     const base = err instanceof Error ? err.message : String(err);
 
-    // Detect SSL/STARTTLS mismatch and return actionable message
+    console.error('[IMAP] ✗ FATAL ERROR:', base, { command, response });
+
     if (base.includes('packet length too long') || base.includes('tls_get_more_records') || base.includes('wrong version number')) {
       return { newAttachments, error: 'SSL грешка: сървърът не очаква криптирана връзка. Изтрийте акаунта и го добавете отново с "STARTTLS / Без (143)" вместо SSL/TLS.' };
     }
@@ -220,10 +264,10 @@ export async function syncEmailAccount(
     const detail = [command && `команда: ${command}`, response && `отговор: ${response}`]
       .filter(Boolean).join(', ');
     const errorMsg = detail ? `${base} (${detail})` : base;
-    console.error('IMAP sync error:', errorMsg);
     return { newAttachments, error: `IMAP грешка: ${errorMsg}` };
   } finally {
     try { await client.logout(); } catch { /* ignore */ }
+    console.log(`[IMAP] ■ syncEmailAccount end — newAttachments=${newAttachments}`);
   }
 
   return { newAttachments };
