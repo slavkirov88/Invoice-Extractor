@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 // Admin client — uses service role key, bypasses RLS
 function createAdminClient() {
-  return createClient(
+  return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } }
@@ -61,16 +62,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Create the user — Supabase sends confirmation email automatically
-  const { error: createError } = await supabase.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: false,
-  });
+  // Use signUp (not admin.createUser) — signUp sends the confirmation email automatically
+  const publicClient = await createClient();
+  const { error: signUpError } = await publicClient.auth.signUp({ email, password });
 
-  if (createError) {
+  if (signUpError) {
     return NextResponse.json(
-      { error: "Грешка при създаване на акаунт: " + createError.message },
+      { error: "Грешка при създаване на акаунт: " + signUpError.message },
       { status: 500 }
     );
   }
