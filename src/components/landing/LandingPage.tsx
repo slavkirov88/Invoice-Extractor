@@ -287,7 +287,7 @@ function HeroSection() {
         >
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-            7 дни безплатно — без карта
+            7 дни безплатно
           </span>
           <span className="flex items-center gap-1.5">
             <Shield className="h-4 w-4 text-emerald-500" />
