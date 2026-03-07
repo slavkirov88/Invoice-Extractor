@@ -52,15 +52,15 @@ import {
 import type { EmailAccount, EmailAttachment, Protocol } from "@/types";
 
 // ── Provider presets ────────────────────────────────────────────────────────
-type ProviderId = "gmail" | "abv" | "mail_bg" | "outlook" | "yahoo" | "other";
+type ProviderId = "gmail" | "mail_bg" | "outlook" | "yahoo" | "thunderbird" | "other";
 
-const PROVIDERS: Record<ProviderId, { label: string; imap_host: string; imap_port: number; imap_secure: boolean }> = {
-  gmail:   { label: "Gmail",       imap_host: "imap.gmail.com",            imap_port: 993, imap_secure: true },
-  abv:     { label: "Abv.bg",      imap_host: "imap.abv.bg",               imap_port: 993, imap_secure: true },
-  mail_bg: { label: "Mail.bg",     imap_host: "imap.mail.bg",              imap_port: 993, imap_secure: true },
-  outlook: { label: "Outlook",     imap_host: "outlook.office365.com",     imap_port: 993, imap_secure: true },
-  yahoo:   { label: "Yahoo",       imap_host: "imap.mail.yahoo.com",       imap_port: 993, imap_secure: true },
-  other:   { label: "Друг",        imap_host: "",                          imap_port: 993, imap_secure: true },
+const PROVIDERS: Record<ProviderId, { label: string; description: string; imap_host: string; imap_port: number; imap_secure: boolean }> = {
+  gmail:       { label: "Gmail",           description: "Google поща (@gmail.com)",        imap_host: "imap.gmail.com",            imap_port: 993, imap_secure: true  },
+  mail_bg:     { label: "Mail.bg",         description: "Българска поща (@mail.bg)",       imap_host: "imap.mail.bg",              imap_port: 993, imap_secure: true  },
+  outlook:     { label: "Outlook",         description: "Microsoft / Office 365",          imap_host: "outlook.office365.com",     imap_port: 993, imap_secure: true  },
+  yahoo:       { label: "Yahoo Mail",      description: "Yahoo поща (@yahoo.com)",         imap_host: "imap.mail.yahoo.com",       imap_port: 993, imap_secure: true  },
+  thunderbird: { label: "Служебна поща",   description: "Фирмена поща чрез Thunderbird",  imap_host: "",                          imap_port: 143, imap_secure: false },
+  other:       { label: "Друг",            description: "Друг имейл доставчик",            imap_host: "",                          imap_port: 993, imap_secure: true  },
 };
 
 // ── Schemas ────────────────────────────────────────────────────────────────
@@ -591,8 +591,9 @@ export default function EmailPage() {
   const handleWizardSave = async () => {
     if (!selectedProvider || !wizardEmail || !wizardPassword) return;
     const provider = PROVIDERS[selectedProvider];
-    const host = selectedProvider === "other" ? wizardHost : provider.imap_host;
-    if (!host) { toast.error("Въведете IMAP хост"); return; }
+    const needsManualHost = selectedProvider === "other" || selectedProvider === "thunderbird";
+    const host = needsManualHost ? wizardHost : provider.imap_host;
+    if (!host) { toast.error("Въведете адреса на сървъра"); return; }
 
     setWizardSaving(true);
     try {
@@ -600,11 +601,11 @@ export default function EmailPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          display_name: provider.label === "Друг" ? wizardEmail : `${provider.label} (${wizardEmail})`,
+          display_name: needsManualHost ? wizardEmail : `${provider.label} (${wizardEmail})`,
           email_address: wizardEmail,
           imap_host: host,
-          imap_port: selectedProvider === "other" ? wizardPort : provider.imap_port,
-          imap_secure: selectedProvider === "other" ? wizardSecure : provider.imap_secure,
+          imap_port: needsManualHost ? wizardPort : provider.imap_port,
+          imap_secure: needsManualHost ? wizardSecure : provider.imap_secure,
           username: wizardEmail,
           password: wizardPassword,
         }),
@@ -827,15 +828,24 @@ export default function EmailPage() {
           {/* Step 1: Provider selection */}
           {wizardStep === 1 && (
             <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">Изберете вашия имейл доставчик:</p>
               <div className="grid grid-cols-2 gap-3">
                 {(Object.entries(PROVIDERS) as [ProviderId, typeof PROVIDERS[ProviderId]][]).map(([id, p]) => (
                   <button
                     key={id}
-                    onClick={() => { setSelectedProvider(id); setWizardStep(2); }}
-                    className="flex items-center gap-3 rounded-lg border border-border px-4 py-3 text-left hover:border-violet-500 hover:bg-violet-500/5 transition-colors"
+                    onClick={() => {
+                      setSelectedProvider(id);
+                      if (id === "thunderbird") { setWizardPort(143); setWizardSecure(false); }
+                      else if (id === "other")  { setWizardPort(993); setWizardSecure(true);  }
+                      setWizardStep(2);
+                    }}
+                    className="flex flex-col gap-1 rounded-lg border border-border px-4 py-3 text-left hover:border-violet-500 hover:bg-violet-500/5 transition-colors"
                   >
-                    <Mail className="h-5 w-5 text-violet-400 shrink-0" />
-                    <span className="font-medium text-sm">{p.label}</span>
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-violet-400 shrink-0" />
+                      <span className="font-semibold text-sm">{p.label}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground leading-tight">{p.description}</span>
                   </button>
                 ))}
               </div>
@@ -845,31 +855,66 @@ export default function EmailPage() {
           {/* Step 2: Email + password */}
           {wizardStep === 2 && selectedProvider && (
             <div className="space-y-4">
-              {/* Gmail App Password guide */}
+
+              {/* Gmail — App Password guide */}
               {selectedProvider === "gmail" && (
-                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-1">
-                  <p className="text-sm font-medium text-amber-400">⚠️ Gmail изисква специална парола</p>
-                  <p className="text-xs text-muted-foreground">
-                    Не използвайте обичайната си парола. Вместо това:
-                  </p>
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-1.5">
+                  <p className="text-sm font-semibold text-amber-400">⚠️ Gmail изисква специална парола</p>
+                  <p className="text-xs text-muted-foreground">Обичайната ви парола няма да работи. Трябва да създадете „App Password":</p>
                   <ol className="text-xs text-muted-foreground space-y-0.5 list-decimal list-inside">
                     <li>Отворете <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="text-violet-400 underline">myaccount.google.com/apppasswords</a></li>
-                    <li>Напишете „TravelInvoices" → натиснете „Създаване"</li>
-                    <li>Копирайте показаната парола (16 символа без интервали)</li>
+                    <li>В полето напишете „TravelInvoices" → натиснете „Създаване"</li>
+                    <li>Копирайте показаната парола (16 символа) и я поставете по-долу</li>
                   </ol>
                 </div>
               )}
 
-              {/* Abv.bg guide */}
-              {selectedProvider === "abv" && (
+              {/* Mail.bg */}
+              {selectedProvider === "mail_bg" && (
                 <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-3">
                   <p className="text-xs text-muted-foreground">
-                    Използвайте обичайната си парола за Abv.bg. Ако не работи, влезте в Abv.bg → Настройки → Сигурност и активирайте достъп за приложения.
+                    Въведете обичайната си парола за Mail.bg. Ако не работи — влезте в Mail.bg → <strong>Настройки → Сигурност</strong> и активирайте „Достъп за приложения".
                   </p>
                 </div>
               )}
 
-              <div className="space-y-2">
+              {/* Outlook */}
+              {selectedProvider === "outlook" && (
+                <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-3">
+                  <p className="text-xs text-muted-foreground">
+                    Въведете паролата за вашия Microsoft акаунт. Ако имате включена двуфакторна автентикация, трябва да създадете App Password от <strong>account.microsoft.com → Сигурност → App passwords</strong>.
+                  </p>
+                </div>
+              )}
+
+              {/* Yahoo */}
+              {selectedProvider === "yahoo" && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-1.5">
+                  <p className="text-sm font-semibold text-amber-400">⚠️ Yahoo изисква специална парола</p>
+                  <ol className="text-xs text-muted-foreground space-y-0.5 list-decimal list-inside">
+                    <li>Влезте в Yahoo → <strong>Акаунт → Сигурност</strong></li>
+                    <li>Изберете „Генерирай парола за приложение"</li>
+                    <li>Копирайте генерираната парола и я поставете по-долу</li>
+                  </ol>
+                </div>
+              )}
+
+              {/* Thunderbird / Служебна поща */}
+              {selectedProvider === "thunderbird" && (
+                <div className="rounded-lg border border-violet-500/30 bg-violet-500/5 p-3 space-y-1.5">
+                  <p className="text-sm font-semibold text-violet-400">📋 Намерете данните в Thunderbird</p>
+                  <p className="text-xs text-muted-foreground">Отворете Thunderbird и следвайте:</p>
+                  <ol className="text-xs text-muted-foreground space-y-0.5 list-decimal list-inside">
+                    <li>Меню → <strong>Инструменти → Настройки на акаунта</strong></li>
+                    <li>Изберете вашия акаунт → <strong>Настройки на сървъра</strong></li>
+                    <li>Копирайте стойността от полето <strong>„Сървър"</strong> по-долу</li>
+                    <li>Паролата е същата, с която влизате в пощата</li>
+                  </ol>
+                </div>
+              )}
+
+              {/* Email field */}
+              <div className="space-y-1.5">
                 <Label htmlFor="w-email">Имейл адрес</Label>
                 <Input
                   id="w-email"
@@ -879,11 +924,13 @@ export default function EmailPage() {
                   onChange={(e) => setWizardEmail(e.target.value)}
                   autoFocus
                 />
+                <p className="text-xs text-muted-foreground">Имейлът, от който получавате фактури</p>
               </div>
 
-              <div className="space-y-2">
+              {/* Password field */}
+              <div className="space-y-1.5">
                 <Label htmlFor="w-password">
-                  {selectedProvider === "gmail" ? "App Password (16 символа)" : "Парола"}
+                  {selectedProvider === "gmail" || selectedProvider === "yahoo" ? "App Password (специална парола)" : "Парола"}
                 </Label>
                 <div className="relative">
                   <Input
@@ -909,20 +956,23 @@ export default function EmailPage() {
                 )}
               </div>
 
-              {/* Extra fields only for "other" */}
-              {selectedProvider === "other" && (
+              {/* Manual server fields — for Thunderbird and Other */}
+              {(selectedProvider === "thunderbird" || selectedProvider === "other") && (
                 <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="w-host">IMAP хост</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="w-host">Адрес на сървъра (IMAP хост)</Label>
                     <Input
                       id="w-host"
-                      placeholder="imap.example.com"
+                      placeholder={selectedProvider === "thunderbird" ? "напр. mail.firmata.com" : "imap.example.com"}
                       value={wizardHost}
                       onChange={(e) => setWizardHost(e.target.value)}
                     />
+                    {selectedProvider === "thunderbird" && (
+                      <p className="text-xs text-muted-foreground">Копирайте от Thunderbird → Настройки на сървъра → поле „Сървър"</p>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <Label htmlFor="w-port">Порт</Label>
                       <Input
                         id="w-port"
@@ -930,9 +980,10 @@ export default function EmailPage() {
                         value={wizardPort}
                         onChange={(e) => setWizardPort(Number(e.target.value))}
                       />
+                      <p className="text-xs text-muted-foreground">143 или 993</p>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Защита</Label>
+                    <div className="space-y-1.5">
+                      <Label>Тип връзка</Label>
                       <Select
                         value={wizardSecure ? "ssl" : "starttls"}
                         onValueChange={(v) => {
@@ -945,10 +996,11 @@ export default function EmailPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="ssl">SSL/TLS (993)</SelectItem>
-                          <SelectItem value="starttls">STARTTLS / Без (143)</SelectItem>
+                          <SelectItem value="starttls">STARTTLS (порт 143)</SelectItem>
+                          <SelectItem value="ssl">SSL/TLS (порт 993)</SelectItem>
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-muted-foreground">Вижте в Thunderbird</p>
                     </div>
                   </div>
                 </div>
