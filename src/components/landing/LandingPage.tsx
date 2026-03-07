@@ -723,19 +723,20 @@ function BeforeAfterSection() {
 function PricingSection() {
   const plans = [
     {
-      name: "Професионален",
+      name: "Старт",
+      originalPrice: "33",
       price: "20",
+      savings: "−40%",
       period: "/месец",
-      description: "За средни агенции. Всичко необходимо.",
+      description: "До 200 фактури и 50 протокола месечно.",
       trial: "7 дни безплатно",
       features: [
-        "До 500 фактури/месец",
-        "Неограничени протоколи",
-        "AI извличане от PDF",
-        "Автоматични ДДС изчисления",
-        "Експорт в Excel и PDF",
-        "Приоритетна поддръжка",
-        "Историческа справка",
+        "До 200 фактури/месец",
+        "До 50 протокола/месец",
+        "AI извличане на данни от PDF",
+        "Автоматичен марж и ДДС — Раздел А, Б, В",
+        "Експорт в Excel и PDF — готово за счетоводителя",
+        "Имейл интеграция — фактурите наредени по контрагент и месец",
       ],
       cta: "Започни безплатен тест",
       popular: true,
@@ -743,20 +744,19 @@ function PricingSection() {
     },
     {
       name: "Бизнес",
+      originalPrice: "80",
       price: "40",
+      savings: "−50%",
       period: "/месец",
-      description: "За големи агенции. Неограничен обем.",
+      description: "Неограничен обем — без тавани, без компромиси.",
       trial: "7 дни безплатно",
       features: [
         "Неограничени фактури",
         "Неограничени протоколи",
-        "AI извличане от PDF",
-        "Автоматични ДДС изчисления",
-        "Експорт в Excel и PDF",
-        "VIP поддръжка + телефон",
-        "Историческа справка",
-        "API достъп",
-        "Множество потребители",
+        "AI извличане на данни от PDF",
+        "Автоматичен марж и ДДС — Раздел А, Б, В",
+        "Експорт в Excel и PDF — готово за счетоводителя",
+        "Имейл интеграция — фактурите наредени по контрагент и месец",
       ],
       cta: "Започни безплатен тест",
       popular: false,
@@ -773,11 +773,11 @@ function PricingSection() {
               Цени
             </div>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Прости и прозрачни цени
+              Спести 10+ часа всеки месец
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Тествайте 7 дни безплатно. Не ви таксуваме през първите 7 дни.
-              Откажете се по всяко време с 1 клик — без обвързване.
+              За по-малко от чаша кафе на ден — нулева ръчна работа по ДДС протоколите.
+              7 дни безплатно, без плащане. И ако след 30 дни не те впечатли — връщаме парите без въпроси.
             </p>
           </div>
         </ScrollReveal>
@@ -807,6 +807,10 @@ function PricingSection() {
                 </div>
 
                 <div className="mb-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm text-muted-foreground line-through">{plan.originalPrice}€/мес</span>
+                    <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">{plan.savings}</span>
+                  </div>
                   <span className="text-5xl font-bold">{plan.price}</span>
                   <span className="text-lg text-muted-foreground ml-1">
                     €{plan.period}
@@ -839,6 +843,10 @@ function PricingSection() {
                 >
                   {plan.cta}
                 </a>
+                <p className="flex items-center justify-center gap-1.5 mt-3 text-xs text-muted-foreground">
+                  <Shield className="h-3 w-3 text-emerald-500 shrink-0" />
+                  30 дни гаранция — връщаме парите без въпроси
+                </p>
               </div>
             </ScrollReveal>
           ))}
@@ -852,8 +860,8 @@ function PricingSection() {
               Сигурно плащане чрез Stripe
             </span>
             <span className="flex items-center gap-2">
-              <Lock className="h-4 w-4" />
-              256-bit SSL криптиране
+              <Shield className="h-4 w-4 text-emerald-500" />
+              30 дни гаранция за връщане
             </span>
             <span className="flex items-center gap-2">
               <BadgeCheck className="h-4 w-4" />
