@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { Mistral } from "@mistralai/mistralai";
+import { withRetry } from "@/lib/mistral/with-retry";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -75,13 +76,13 @@ export async function POST(request: NextRequest) {
     // OCR extraction
     let ocrText = "";
     try {
-      const ocrResponse = await mistral.ocr.process({
+      const ocrResponse = await withRetry(() => mistral.ocr.process({
         model: "mistral-ocr-latest",
         document: {
           type: "document_url",
           documentUrl: `data:application/pdf;base64,${base64}`,
         },
-      });
+      }));
       ocrText = ocrResponse.pages?.map((p) => p.markdown).join("\n\n") || "";
     } catch {
       // fallback to vision
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
     let content: string | null = null;
 
     if (ocrText) {
-      const response = await mistral.chat.complete({
+      const response = await withRetry(() => mistral.chat.complete({
         model: "mistral-small-latest",
         messages: [{
           role: "user",
@@ -104,11 +105,11 @@ export async function POST(request: NextRequest) {
 
 ${ocrText}`,
         }],
-      });
+      }));
       const raw = response.choices?.[0]?.message?.content;
       content = typeof raw === "string" ? raw : null;
     } else {
-      const response = await mistral.chat.complete({
+      const response = await withRetry(() => mistral.chat.complete({
         model: "mistral-small-latest",
         messages: [{
           role: "user",
@@ -117,7 +118,7 @@ ${ocrText}`,
             { type: "document_url", documentUrl: `data:application/pdf;base64,${base64}` },
           ],
         }],
-      });
+      }));
       const raw = response.choices?.[0]?.message?.content;
       content = typeof raw === "string" ? raw : null;
     }
@@ -141,6 +142,12 @@ ${ocrText}`,
 
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("429") || msg.includes("rate_limited") || msg.includes("Rate limit")) {
+      return NextResponse.json(
+        { error: "AI услугата е претоварена в момента. Изчакайте 30 секунди и опитайте отново." },
+        { status: 429 }
+      );
+    }
     return NextResponse.json({ error: "Грешка при AI обработка: " + msg }, { status: 500 });
   }
 }

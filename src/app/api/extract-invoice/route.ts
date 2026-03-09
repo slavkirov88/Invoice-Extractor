@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { Mistral } from "@mistralai/mistralai";
+import { withRetry } from "@/lib/mistral/with-retry";
 
 export const dynamic = "force-dynamic";
 
@@ -52,13 +53,13 @@ export async function POST(request: NextRequest) {
     // Step 1: OCR — extract text from PDF
     let ocrText = "";
     try {
-      const ocrResponse = await mistral.ocr.process({
+      const ocrResponse = await withRetry(() => mistral.ocr.process({
         model: "mistral-ocr-latest",
         document: {
           type: "document_url",
           documentUrl: `data:application/pdf;base64,${base64}`,
         },
-      });
+      }));
 
       ocrText = ocrResponse.pages
         ?.map((page) => page.markdown)
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     if (ocrText) {
       // Step 2a: Use extracted text with chat model (more reliable)
-      const response = await mistral.chat.complete({
+      const response = await withRetry(() => mistral.chat.complete({
         model: "mistral-small-latest",
         messages: [
           {
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
 1. Номер на документа (фактура №, Invoice No, Document No, и т.н.)
 2. Дата на издаване (във формат YYYY-MM-DD)
 3. Обща стойност/сума в евро (само числото, без валута). Ако сумата е в BGN/лева, конвертирай в EUR по курс 1.95583 (раздели на 1.95583). Ако е в друга валута, върни оригиналната стойност.
-4. ЕИК/VAT номер на ИЗДАТЕЛЯ на документа (търси: ЕИК, Булстат, VAT, ДДС №, UIC, Tax ID). Ако намериш — върни без интервали, с "BG" prefix ако е български (напр. "BG123456789"). Ако НЕ намериш — върни "999999999".
+4. ЕИК/VAT номер на ИЗДАТЕЛЯ на документата (търси: ЕИК, Булстат, VAT, ДДС №, UIC, Tax ID). Ако намериш — върни без интервали, с "BG" prefix ако е български (напр. "BG123456789"). Ако НЕ намериш — върни "999999999".
 
 ВАЖНО:
 - Датата може да е в различни формати — винаги върни YYYY-MM-DD
@@ -94,13 +95,13 @@ export async function POST(request: NextRequest) {
 ${ocrText}`,
           },
         ],
-      });
+      }));
 
       const rawContent = response.choices?.[0]?.message?.content;
       content = typeof rawContent === "string" ? rawContent : null;
     } else {
       // Step 2b: Fallback — send PDF directly to vision model
-      const response = await mistral.chat.complete({
+      const response = await withRetry(() => mistral.chat.complete({
         model: "mistral-small-latest",
         messages: [
           {
@@ -123,7 +124,7 @@ ${ocrText}`,
             ],
           },
         ],
-      });
+      }));
 
       const rawContent = response.choices?.[0]?.message?.content;
       content = typeof rawContent === "string" ? rawContent : null;
@@ -167,7 +168,13 @@ ${ocrText}`,
       );
     }
 
-    // Show actual error for debugging
+    if (message.includes("429") || message.includes("rate_limited") || message.includes("Rate limit")) {
+      return NextResponse.json(
+        { error: "AI услугата е претоварена в момента. Изчакайте 30 секунди и опитайте отново." },
+        { status: 429 }
+      );
+    }
+
     return NextResponse.json(
       { error: "Грешка при обработка: " + message },
       { status: 500 }
