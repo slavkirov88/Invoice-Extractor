@@ -144,8 +144,8 @@ export function ProtocolForm({ onSuccess }: ProtocolFormProps) {
             <div>
               <h3 className="text-lg font-semibold">Започнете безплатен тест</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                За да създавате протоколи, започнете 7-дневен безплатен тестов период.
-                Не ви таксуваме през първите 7 дни.
+                За да създавате протоколи, започнете 14-дневен безплатен тестов период.
+                Не ви таксуваме през първите 14 дни.
               </p>
             </div>
             <Link
@@ -153,7 +153,7 @@ export function ProtocolForm({ onSuccess }: ProtocolFormProps) {
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-8 py-3 text-sm font-medium text-white hover:bg-violet-700 transition-colors"
             >
               <Zap className="h-4 w-4" />
-              Започни 7-дневен безплатен тест
+              Започни 14-дневен безплатен тест
             </Link>
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <AlertCircle className="h-3 w-3" />

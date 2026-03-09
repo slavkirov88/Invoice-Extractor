@@ -188,6 +188,7 @@ export default function AdminPage() {
     trialing: "Пробен период",
     past_due: "Просрочен",
     canceled: "Отказан",
+    canceling: "Отменя се",
   };
 
   const statusColor: Record<string, string> = {
@@ -195,6 +196,7 @@ export default function AdminPage() {
     trialing: "text-blue-400 bg-blue-400/10",
     past_due: "text-yellow-400 bg-yellow-400/10",
     canceled: "text-red-400 bg-red-400/10",
+    canceling: "text-orange-400 bg-orange-400/10",
   };
 
   function getRemainingDays(dateStr: string): number {

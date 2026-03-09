@@ -13,16 +13,16 @@ export const PLANS = {
       protocols: 10,
       invoices: 20,
     },
-    trialDays: 7,
+    trialDays: 14,
   },
   professional: {
-    name: "Професионален",
+    name: "Старт",
     priceId: process.env.STRIPE_PROFESSIONAL_PRICE_ID,
     limits: {
       protocols: Infinity,
       invoices: 500,
     },
-    trialDays: 7,
+    trialDays: 14,
   },
   business: {
     name: "Бизнес",
@@ -31,6 +31,6 @@ export const PLANS = {
       protocols: Infinity,
       invoices: Infinity,
     },
-    trialDays: 7,
+    trialDays: 14,
   },
 } as const;

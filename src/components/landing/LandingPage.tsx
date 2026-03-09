@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -51,7 +51,7 @@ function AnnouncementBar() {
           href="#pricing"
           className="ml-3 inline-flex items-center gap-1 font-semibold underline underline-offset-2 hover:text-violet-200 transition-colors"
         >
-          Пробвай 7 дни безплатно →
+          Пробвай 14 дни безплатно →
         </a>
       </p>
     </div>
@@ -266,7 +266,7 @@ function HeroSection() {
             href="#pricing"
             className="group inline-flex items-center gap-2 rounded-xl bg-violet-600 px-6 py-3 sm:px-8 sm:py-4 text-base sm:text-lg font-semibold text-white hover:bg-violet-700 transition-all shadow-2xl shadow-violet-600/25 hover:shadow-violet-600/40 hover:scale-[1.02]"
           >
-            Започни 7-дневен безплатен тест
+            Започни 14-дневен безплатен тест
             <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
           </Link>
           <a
@@ -287,7 +287,7 @@ function HeroSection() {
         >
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-            7 дни безплатно
+            14 дни безплатно
           </span>
           <span className="flex items-center gap-1.5">
             <Shield className="h-4 w-4 text-emerald-500" />
@@ -747,7 +747,7 @@ function PricingSection() {
       savings: "−40%",
       period: "/месец",
       description: "До 200 фактури и 50 протокола месечно.",
-      trial: "7 дни безплатно",
+      trial: "14 дни безплатно",
       features: [
         "До 200 фактури/месец",
         "До 50 протокола/месец",
@@ -767,7 +767,7 @@ function PricingSection() {
       savings: "−50%",
       period: "/месец",
       description: "Неограничен обем — без тавани, без компромиси.",
-      trial: "7 дни безплатно",
+      trial: "14 дни безплатно",
       features: [
         "Неограничени фактури",
         "Неограничени протоколи",
@@ -795,7 +795,7 @@ function PricingSection() {
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               За по-малко от чаша кафе на ден — нулева ръчна работа по ДДС протоколите.
-              7 дни безплатно, без плащане. И ако след 30 дни не те впечатли — връщаме парите без въпроси.
+              14 дни безплатно, без плащане. И ако след 30 дни не те впечатли — връщаме парите без въпроси.
             </p>
           </div>
         </ScrollReveal>
@@ -896,7 +896,7 @@ function FAQSection() {
   const faqs = [
     {
       q: "Какво включва безплатният тестов период?",
-      a: "Получавате пълен достъп до всички функции за 7 дни. Въвеждате картата си при регистрация, но не ви таксуваме през първите 7 дни. Ако решите да не продължавате — откажете се с 1 клик от настройките на акаунта. Ако не направите нищо, абонаментът продължава автоматично.",
+      a: "Получавате пълен достъп до всички функции за 14 дни. Въвеждате картата си при регистрация, но не ви таксуваме през първите 14 дни. Ако решите да не продължавате — откажете се с 1 клик от настройките на акаунта. Ако не направите нищо, абонаментът продължава автоматично.",
     },
     {
       q: "Как се извличат данните от фактурите?",
@@ -1009,19 +1009,19 @@ function CTASection() {
               </h2>
               <p className="text-lg text-white/80 max-w-2xl mx-auto mb-10">
                 Присъединете се към туристическите агенции, които вече управляват
-                фактурите си автоматично. Тествайте 7 дни безплатно.
+                фактурите си автоматично. Тествайте 14 дни безплатно.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
                   href="/login"
                   className="group inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 sm:px-8 sm:py-4 text-base sm:text-lg font-semibold text-violet-700 hover:bg-white/90 transition-all shadow-2xl hover:scale-[1.02]"
                 >
-                  Започни 7-дневен безплатен тест
+                  Започни 14-дневен безплатен тест
                   <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>
               <p className="mt-6 text-sm text-white/60">
-                7 дни безплатно &middot; Откажете се по всяко време &middot; После от 20€/мес
+                14 дни безплатно &middot; Откажете се по всяко време &middot; После от 20€/мес
               </p>
             </div>
           </div>

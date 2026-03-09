@@ -44,16 +44,17 @@ export async function POST(request: NextRequest) {
             ? "business"
             : "professional";
 
-        await supabase.from("subscriptions").upsert({
+        const { error } = await supabase.from("subscriptions").upsert({
           user_id: userId,
           stripe_subscription_id: session.subscription,
           stripe_customer_id: session.customer,
           status: "trialing",
           plan,
           current_period_end: new Date(
-            Date.now() + 7 * 24 * 60 * 60 * 1000
+            Date.now() + 14 * 24 * 60 * 60 * 1000
           ).toISOString(),
         });
+        if (error) console.error("checkout.session.completed upsert error:", error);
       }
       break;
     }
@@ -64,13 +65,23 @@ export async function POST(request: NextRequest) {
       if (userId) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const periodEnd = (subscription as any).current_period_end as number;
-        await supabase
+        const priceId = subscription.items.data[0]?.price?.id;
+        const plan =
+          priceId === process.env.STRIPE_BUSINESS_PRICE_ID
+            ? "business"
+            : "professional";
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const cancelAtPeriodEnd = (subscription as any).cancel_at_period_end as boolean;
+        const status = cancelAtPeriodEnd ? "canceling" : subscription.status;
+        const { error } = await supabase
           .from("subscriptions")
           .update({
-            status: subscription.status,
+            status,
+            plan,
             current_period_end: new Date(periodEnd * 1000).toISOString(),
           })
           .eq("user_id", userId);
+        if (error) console.error("customer.subscription.updated error:", error);
       }
       break;
     }
@@ -79,10 +90,11 @@ export async function POST(request: NextRequest) {
       const subscription = event.data.object;
       const userId = subscription.metadata?.userId;
       if (userId) {
-        await supabase
+        const { error } = await supabase
           .from("subscriptions")
           .update({ status: "canceled" })
           .eq("user_id", userId);
+        if (error) console.error("customer.subscription.deleted error:", error);
       }
       break;
     }
@@ -90,12 +102,23 @@ export async function POST(request: NextRequest) {
     case "invoice.payment_failed": {
       const invoice = event.data.object;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const userId = (invoice as any).subscription_details?.metadata?.userId as string | undefined;
-      if (userId) {
-        await supabase
-          .from("subscriptions")
-          .update({ status: "past_due" })
-          .eq("user_id", userId);
+      const subscriptionId = (invoice as any).subscription as string | undefined;
+      if (subscriptionId) {
+        try {
+          const sub = await stripe.subscriptions.retrieve(subscriptionId);
+          const userId = sub.metadata?.userId;
+          if (userId) {
+            const { error } = await supabase
+              .from("subscriptions")
+              .update({ status: "past_due" })
+              .eq("user_id", userId);
+            if (error) console.error("invoice.payment_failed update error:", error);
+          } else {
+            console.error("invoice.payment_failed: no userId in subscription metadata", subscriptionId);
+          }
+        } catch (err) {
+          console.error("invoice.payment_failed: failed to retrieve subscription", subscriptionId, err);
+        }
       }
       break;
     }

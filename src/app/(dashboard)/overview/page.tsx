@@ -27,15 +27,18 @@ export default async function DashboardPage() {
 
   const { count: protocolCount } = await supabase
     .from("protocols")
-    .select("*", { count: "exact", head: true });
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user!.id);
 
   const { count: invoiceCount } = await supabase
     .from("invoices")
-    .select("*", { count: "exact", head: true });
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user!.id);
 
   const { data: invoices } = await supabase
     .from("invoices")
-    .select("amount, section");
+    .select("amount, section")
+    .eq("user_id", user!.id);
 
   const totalReceived =
     invoices

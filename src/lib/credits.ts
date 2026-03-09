@@ -10,6 +10,8 @@ export interface UserCredits {
   remaining: number;
   isUnlimited: boolean;
   hasSubscription: boolean;
+  subscriptionStatus?: "trialing" | "active" | "past_due" | "canceled" | "canceling";
+  currentPeriodEnd?: string;
 }
 
 export async function getUserCredits(
@@ -46,7 +48,7 @@ export async function getUserCredits(
         const plan = (whitelist.plan || "professional") as "professional" | "business";
         return {
           plan,
-          planName: plan === "professional" ? "Професионален" : "Бизнес",
+          planName: plan === "professional" ? "Старт" : "Бизнес",
           used: 0,
           total: Infinity,
           remaining: Infinity,
@@ -66,7 +68,7 @@ export async function getUserCredits(
 
   const hasActiveSub =
     subscription &&
-    (subscription.status === "active" || subscription.status === "trialing");
+    (subscription.status === "active" || subscription.status === "trialing" || subscription.status === "canceling");
 
   if (hasActiveSub) {
     // For admin-granted subs without Stripe, check expiration
@@ -88,12 +90,14 @@ export async function getUserCredits(
     const plan = subscription.plan as "professional" | "business";
     return {
       plan,
-      planName: plan === "professional" ? "Професионален" : "Бизнес",
+      planName: plan === "professional" ? "Старт" : "Бизнес",
       used: 0,
       total: Infinity,
       remaining: Infinity,
       isUnlimited: true,
       hasSubscription: true,
+      subscriptionStatus: subscription.status as "trialing" | "active" | "past_due" | "canceled" | "canceling",
+      currentPeriodEnd: subscription.current_period_end ?? undefined,
     };
   }
 

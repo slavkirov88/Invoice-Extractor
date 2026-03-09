@@ -39,6 +39,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Файлът не е намерен" }, { status: 404 });
   }
 
+  if (attachment.mime_type !== "application/pdf") {
+    return NextResponse.json(
+      { error: "Поддържат се само PDF файлове" },
+      { status: 422 }
+    );
+  }
+
   // Download file from Supabase Storage using admin client
   const admin = getAdminClient();
   const { data: fileData, error: downloadError } = await admin.storage
