@@ -25,22 +25,36 @@ import type { UserCredits } from "@/lib/credits";
 
 interface ProtocolFormProps {
   onSuccess?: (id: string) => void;
+  // Optional props for edit mode
+  protocolId?: string;
+  initialData?: {
+    supplier_name: string;
+    supplier_vat_id: string;
+    creation_date: string;
+    tax_event_date: string;
+    reference_number: string;
+    protocol_type: "eu" | "non_eu" | "mixed";
+    linked_protocol_number: string;
+    compiled_by: string;
+    approved_by: string;
+  };
+  onCancel?: () => void;
 }
 
-export function ProtocolForm({ onSuccess }: ProtocolFormProps) {
+export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: ProtocolFormProps) {
   const [loading, setLoading] = useState(false);
   const [credits, setCredits] = useState<UserCredits | null>(null);
   const [creditsLoading, setCreditsLoading] = useState(true);
   const [formData, setFormData] = useState({
-    supplier_name: "",
-    supplier_vat_id: "",
-    creation_date: new Date().toISOString().split("T")[0],
-    tax_event_date: new Date().toISOString().split("T")[0],
-    reference_number: "",
-    protocol_type: "eu" as "eu" | "non_eu" | "mixed",
-    linked_protocol_number: "",
-    compiled_by: "",
-    approved_by: "",
+    supplier_name: initialData?.supplier_name ?? "",
+    supplier_vat_id: initialData?.supplier_vat_id ?? "",
+    creation_date: initialData?.creation_date ?? new Date().toISOString().split("T")[0],
+    tax_event_date: initialData?.tax_event_date ?? new Date().toISOString().split("T")[0],
+    reference_number: initialData?.reference_number ?? "",
+    protocol_type: (initialData?.protocol_type ?? "eu") as "eu" | "non_eu" | "mixed",
+    linked_protocol_number: initialData?.linked_protocol_number ?? "",
+    compiled_by: initialData?.compiled_by ?? "",
+    approved_by: initialData?.approved_by ?? "",
   });
 
   // Auto tax_rate based on protocol type
@@ -66,20 +80,22 @@ export function ProtocolForm({ onSuccess }: ProtocolFormProps) {
     e.preventDefault();
     setLoading(true);
 
-    // Re-check subscription before submit
-    try {
-      const res = await fetch("/api/credits");
-      if (res.ok) {
-        const latest: UserCredits = await res.json();
-        if (!latest.isUnlimited) {
-          toast.error("Нямате активен абонамент. Започнете безплатен тест.");
-          setCredits(latest);
-          setLoading(false);
-          return;
+    // Re-check subscription before submit — only for create
+    if (!protocolId) {
+      try {
+        const res = await fetch("/api/credits");
+        if (res.ok) {
+          const latest: UserCredits = await res.json();
+          if (!latest.isUnlimited) {
+            toast.error("Нямате активен абонамент. Започнете безплатен тест.");
+            setCredits(latest);
+            setLoading(false);
+            return;
+          }
         }
+      } catch {
+        // proceed on error
       }
-    } catch {
-      // proceed on error
     }
 
     const {
@@ -87,6 +103,36 @@ export function ProtocolForm({ onSuccess }: ProtocolFormProps) {
     } = await supabase.auth.getUser();
     if (!user) {
       toast.error("Не сте влезли в системата");
+      setLoading(false);
+      return;
+    }
+
+    if (protocolId) {
+      // Edit mode — do update
+      const { error } = await supabase
+        .from("protocols")
+        .update({
+          supplier_name: formData.supplier_name,
+          supplier_vat_id: formData.supplier_vat_id,
+          creation_date: formData.creation_date,
+          tax_event_date: formData.tax_event_date,
+          reference_number: formData.reference_number || null,
+          protocol_type: formData.protocol_type,
+          tax_rate: taxRate,
+          linked_protocol_number: formData.linked_protocol_number
+            ? parseInt(formData.linked_protocol_number)
+            : null,
+          compiled_by: formData.compiled_by,
+          approved_by: formData.approved_by,
+        })
+        .eq("id", protocolId);
+
+      if (error) {
+        toast.error("Грешка при запис: " + error.message);
+      } else {
+        toast.success("Протоколът е обновен успешно");
+        onSuccess?.(protocolId);
+      }
       setLoading(false);
       return;
     }
@@ -123,7 +169,7 @@ export function ProtocolForm({ onSuccess }: ProtocolFormProps) {
     setLoading(false);
   };
 
-  if (creditsLoading) {
+  if (!protocolId && creditsLoading) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-12">
@@ -133,7 +179,7 @@ export function ProtocolForm({ onSuccess }: ProtocolFormProps) {
     );
   }
 
-  if (credits && !credits.isUnlimited) {
+  if (!protocolId && credits && !credits.isUnlimited) {
     return (
       <Card>
         <CardContent className="py-12">
@@ -319,9 +365,18 @@ export function ProtocolForm({ onSuccess }: ProtocolFormProps) {
             </div>
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "Създаване..." : "Създай протокол"}
-          </Button>
+          <div className="flex gap-2">
+            {onCancel && (
+              <Button type="button" variant="outline" onClick={onCancel} disabled={loading} className="flex-1">
+                Откажи
+              </Button>
+            )}
+            <Button type="submit" disabled={loading} className={onCancel ? "flex-1" : "w-full"}>
+              {loading
+                ? (protocolId ? "Запазване..." : "Създаване...")
+                : (protocolId ? "Запази промените" : "Създай протокол")}
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>
