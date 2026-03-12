@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -54,6 +55,7 @@ export function ProtocolDetail({
   protocol: ProtocolWithInvoices;
 }) {
   const supabase = createClient();
+  const router = useRouter();
 
   const sectionA = protocol.invoices
     .filter((i) => i.section === "A")
@@ -109,55 +111,48 @@ export function ProtocolDetail({
     const toUpdate = drafts.filter((d) => !d._deleted && d.id);
     const toInsert = drafts.filter((d) => !d._deleted && !d.id);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const promises: Promise<{ error: any }>[] = [];
-
     for (const d of toDelete) {
-      promises.push(
-        supabase.from("invoices").delete().eq("id", d.id!) as unknown as Promise<{ error: unknown }>
-      );
+      const { error } = await supabase.from("invoices").delete().eq("id", d.id!);
+      if (error) return false;
     }
 
     for (let i = 0; i < toUpdate.length; i++) {
       const d = toUpdate[i];
-      promises.push(
-        supabase
-          .from("invoices")
-          .update({
-            document_type: d.document_type,
-            document_number: d.document_number,
-            issue_date: d.issue_date,
-            counterparty_vat_id: d.counterparty_vat_id || null,
-            amount: parseFloat(d.amount) || 0,
-            vat_rate: d.vat_rate ? parseFloat(d.vat_rate) : null,
-            sequence_number: i + 1,
-          })
-          .eq("id", d.id!) as unknown as Promise<{ error: unknown }>
-      );
-    }
-
-    const insertOffset = toUpdate.length;
-    for (let i = 0; i < toInsert.length; i++) {
-      const d = toInsert[i];
-      promises.push(
-        supabase.from("invoices").insert({
-          protocol_id: protocol.id,
-          section,
-          sequence_number: insertOffset + i + 1,
+      const { error } = await supabase
+        .from("invoices")
+        .update({
           document_type: d.document_type,
           document_number: d.document_number,
           issue_date: d.issue_date,
           counterparty_vat_id: d.counterparty_vat_id || null,
           amount: parseFloat(d.amount) || 0,
-          invoice_category: section === "A" ? "income" : "expense",
           vat_rate: d.vat_rate ? parseFloat(d.vat_rate) : null,
-          user_id: userId,
-        }) as unknown as Promise<{ error: unknown }>
-      );
+          sequence_number: i + 1,
+        })
+        .eq("id", d.id!);
+      if (error) return false;
     }
 
-    const results = await Promise.all(promises);
-    return results.every((r) => !r.error);
+    const insertOffset = toUpdate.length;
+    for (let i = 0; i < toInsert.length; i++) {
+      const d = toInsert[i];
+      const { error } = await supabase.from("invoices").insert({
+        protocol_id: protocol.id,
+        section,
+        sequence_number: insertOffset + i + 1,
+        document_type: d.document_type,
+        document_number: d.document_number,
+        issue_date: d.issue_date,
+        counterparty_vat_id: d.counterparty_vat_id || null,
+        amount: parseFloat(d.amount) || 0,
+        invoice_category: section === "A" ? "income" : "expense",
+        vat_rate: d.vat_rate ? parseFloat(d.vat_rate) : null,
+        user_id: userId,
+      });
+      if (error) return false;
+    }
+
+    return true;
   }
 
   async function handleSave() {
@@ -209,7 +204,7 @@ export function ProtocolDetail({
     toast.success("Протоколът е обновен успешно");
     setSaving(false);
     setIsEditing(false);
-    window.location.reload();
+    router.refresh();
   }
 
   return (
