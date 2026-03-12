@@ -28,7 +28,7 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import type { Protocol, Invoice } from "@/types";
 import Link from "next/link";
-import { Plus, Pencil, X } from "lucide-react";
+import { Plus, Pencil, X, Files } from "lucide-react";
 
 interface ProtocolWithInvoices extends Protocol {
   invoices: Invoice[];
@@ -249,6 +249,12 @@ export function ProtocolDetail({
               <Button variant="outline" onClick={() => setIsEditing(true)}>
                 <Pencil className="mr-2 h-4 w-4" />
                 Редактирай
+              </Button>
+              <Button asChild variant="outline">
+                <Link href={`/invoices/bulk?protocol=${protocol.id}`}>
+                  <Files className="mr-2 h-4 w-4" />
+                  Добави фактури
+                </Link>
               </Button>
               <Button asChild variant="outline">
                 <Link href={`/invoices/add?protocol=${protocol.id}`}>
