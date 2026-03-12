@@ -23,6 +23,14 @@ import { AlertCircle, Zap } from "lucide-react";
 import Link from "next/link";
 import type { UserCredits } from "@/lib/credits";
 
+interface SupplierTemplate {
+  supplier_name: string;
+  supplier_vat_id: string;
+  protocol_type: "eu" | "non_eu" | "mixed";
+  compiled_by: string | null;
+  approved_by: string | null;
+}
+
 interface ProtocolFormProps {
   onSuccess?: (id: string) => void;
   // Optional props for edit mode
@@ -45,6 +53,7 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
   const [loading, setLoading] = useState(false);
   const [credits, setCredits] = useState<UserCredits | null>(null);
   const [creditsLoading, setCreditsLoading] = useState(true);
+  const [templates, setTemplates] = useState<SupplierTemplate[]>([]);
   const [formData, setFormData] = useState({
     supplier_name: initialData?.supplier_name ?? "",
     supplier_vat_id: initialData?.supplier_vat_id ?? "",
@@ -73,7 +82,42 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
         setCreditsLoading(false);
       }
     }
+
+    async function fetchTemplates() {
+      if (protocolId) return; // edit mode — skip
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("protocols")
+        .select("supplier_name, supplier_vat_id, protocol_type, compiled_by, approved_by, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (!data) return;
+
+      // Deduplicate by supplier_vat_id (keep first = most recent)
+      const seen = new Set<string>();
+      const unique: SupplierTemplate[] = [];
+      for (const row of data) {
+        if (!seen.has(row.supplier_vat_id)) {
+          seen.add(row.supplier_vat_id);
+          unique.push({
+            supplier_name: row.supplier_name,
+            supplier_vat_id: row.supplier_vat_id,
+            protocol_type: row.protocol_type as "eu" | "non_eu" | "mixed",
+            compiled_by: row.compiled_by,
+            approved_by: row.approved_by,
+          });
+        }
+      }
+      setTemplates(unique);
+    }
+
     fetchCredits();
+    fetchTemplates();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -218,6 +262,41 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {!protocolId && templates.length > 0 && (
+            <div className="space-y-2">
+              <Label>Избери доставчик (по предишен протокол)</Label>
+              <Select
+                value=""
+                onValueChange={(vatId) => {
+                  if (!vatId) return;
+                  const tpl = templates.find((t) => t.supplier_vat_id === vatId);
+                  if (!tpl) return;
+                  setFormData((prev) => ({
+                    ...prev,
+                    supplier_name: tpl.supplier_name,
+                    supplier_vat_id: tpl.supplier_vat_id,
+                    protocol_type: tpl.protocol_type,
+                    compiled_by: tpl.compiled_by ?? "",
+                    approved_by: tpl.approved_by ?? "",
+                  }));
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="— Избери съществуващ доставчик —" />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates.map((t) => (
+                    <SelectItem key={t.supplier_vat_id} value={t.supplier_vat_id}>
+                      {t.supplier_name} ({t.supplier_vat_id})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Изборът ще попълни полетата автоматично — можете да ги промените след това.
+              </p>
+            </div>
+          )}
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="supplier_name">Име на доставчика</Label>
