@@ -29,6 +29,7 @@ interface SupplierTemplate {
   protocol_type: "eu" | "non_eu" | "mixed";
   compiled_by: string | null;
   approved_by: string | null;
+  destination: string | null;
 }
 
 interface ProtocolFormProps {
@@ -45,6 +46,7 @@ interface ProtocolFormProps {
     linked_protocol_number: string;
     compiled_by: string;
     approved_by: string;
+    destination: string;
   };
   onCancel?: () => void;
 }
@@ -64,6 +66,7 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
     linked_protocol_number: initialData?.linked_protocol_number ?? "",
     compiled_by: initialData?.compiled_by ?? "",
     approved_by: initialData?.approved_by ?? "",
+    destination: initialData?.destination ?? "",
   });
 
   // Auto tax_rate based on protocol type
@@ -92,7 +95,7 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
 
       const { data } = await supabase
         .from("protocols")
-        .select("supplier_name, supplier_vat_id, protocol_type, compiled_by, approved_by, created_at")
+        .select("supplier_name, supplier_vat_id, protocol_type, compiled_by, approved_by, destination, created_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -110,6 +113,7 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
             protocol_type: row.protocol_type as "eu" | "non_eu" | "mixed",
             compiled_by: row.compiled_by,
             approved_by: row.approved_by,
+            destination: row.destination,
           });
         }
       }
@@ -168,6 +172,7 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
             : null,
           compiled_by: formData.compiled_by,
           approved_by: formData.approved_by,
+          destination: formData.destination || null,
         })
         .eq("id", protocolId);
 
@@ -196,6 +201,7 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
           : null,
         compiled_by: formData.compiled_by,
         approved_by: formData.approved_by,
+        destination: formData.destination || null,
         user_id: user.id,
       })
       .select()
@@ -278,6 +284,7 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
                     protocol_type: tpl.protocol_type,
                     compiled_by: tpl.compiled_by ?? "",
                     approved_by: tpl.approved_by ?? "",
+                    destination: tpl.destination ?? "",
                   }));
                 }}
               >
@@ -383,6 +390,18 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
                 </p>
               )}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="destination">Дестинация (незадължително)</Label>
+            <Input
+              id="destination"
+              value={formData.destination}
+              onChange={(e) =>
+                setFormData({ ...formData, destination: e.target.value })
+              }
+              placeholder="напр. Италия, Гърция"
+            />
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
