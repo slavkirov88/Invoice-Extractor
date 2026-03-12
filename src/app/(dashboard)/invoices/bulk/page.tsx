@@ -39,6 +39,7 @@ import type { UserCredits } from "@/lib/credits";
 type FileStatus = "pending" | "scanning" | "saved" | "error";
 
 interface FileItem {
+  _id: string;
   file: File;
   status: FileStatus;
   error?: string;
@@ -103,7 +104,7 @@ function BulkInvoiceContent() {
       }
       setFiles((prev) => [
         ...prev,
-        ...pdfs.map((f) => ({ file: f, status: "pending" as FileStatus })),
+        ...pdfs.map((f) => ({ _id: crypto.randomUUID(), file: f, status: "pending" as FileStatus })),
       ]);
     },
     [processing, done]
@@ -400,7 +401,7 @@ function BulkInvoiceContent() {
               <div className="space-y-2">
                 {files.map((item, i) => (
                   <div
-                    key={i}
+                    key={item._id}
                     className="flex items-center gap-3 rounded-lg border px-3 py-2"
                   >
                     {item.status === "pending" && (
@@ -494,8 +495,8 @@ function BulkInvoiceContent() {
               <div className="w-full space-y-1">
                 {files
                   .filter((f) => f.status === "error")
-                  .map((f, i) => (
-                    <p key={i} className="text-xs text-destructive">
+                  .map((f) => (
+                    <p key={f._id} className="text-xs text-destructive">
                       ✕ {f.file.name}: {f.error}
                     </p>
                   ))}
