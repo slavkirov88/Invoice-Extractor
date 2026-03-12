@@ -120,7 +120,7 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
           protocol_type: formData.protocol_type,
           tax_rate: taxRate,
           linked_protocol_number: formData.linked_protocol_number
-            ? parseInt(formData.linked_protocol_number)
+            ? parseInt(formData.linked_protocol_number, 10)
             : null,
           compiled_by: formData.compiled_by,
           approved_by: formData.approved_by,
