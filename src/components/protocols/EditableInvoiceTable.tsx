@@ -22,6 +22,7 @@ import type { Invoice } from "@/types";
 
 export interface InvoiceDraft {
   id?: string;           // undefined = new row not yet saved
+  _clientId: string;     // stable key for React rendering
   section: "A" | "B";
   sequence_number: number;
   document_type: string;
@@ -108,6 +109,7 @@ export function EditableInvoiceTable({
     onDraftsChange([
       ...drafts,
       {
+        _clientId: crypto.randomUUID(),
         section,
         sequence_number: visibleDrafts.length + 1,
         document_type: "Фактура",
@@ -149,7 +151,7 @@ export function EditableInvoiceTable({
               </TableHeader>
               <TableBody>
                 {visibleDrafts.map((d, i) => (
-                  <TableRow key={d.id ?? i}>
+                  <TableRow key={d._clientId}>
                     <TableCell>{d.sequence_number}</TableCell>
                     <TableCell>{d.document_type}</TableCell>
                     <TableCell className="font-mono">
@@ -210,7 +212,7 @@ export function EditableInvoiceTable({
           </TableHeader>
           <TableBody>
             {visibleDrafts.map((d, i) => (
-              <TableRow key={d.id ?? i}>
+              <TableRow key={d._clientId}>
                 <TableCell className="text-muted-foreground">{i + 1}</TableCell>
                 <TableCell>
                   <Input
