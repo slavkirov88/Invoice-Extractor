@@ -102,7 +102,7 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
       const seen = new Set<string>();
       const unique: SupplierTemplate[] = [];
       for (const row of data) {
-        if (!seen.has(row.supplier_vat_id)) {
+        if (row.supplier_vat_id && !seen.has(row.supplier_vat_id)) {
           seen.add(row.supplier_vat_id);
           unique.push({
             supplier_name: row.supplier_name,
