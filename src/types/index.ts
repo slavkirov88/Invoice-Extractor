@@ -7,6 +7,7 @@ export interface Protocol {
   creation_date: string;
   tax_event_date: string;
   reference_number: string | null;
+  destination: string | null;
   protocol_type: "eu" | "non_eu" | "mixed" | "standard" | "commission";
   tax_rate: number;
   compiled_by: string | null;
@@ -73,7 +74,10 @@ export interface EmailAttachment {
   filename: string;
   file_size: number | null;
   mime_type: string | null;
-  storage_path: string;
+  storage_path: string | null;
+  status: "pending" | "downloaded";
+  imap_uid: number | null;
+  imap_part: string | null;
   created_at: string;
 }
 

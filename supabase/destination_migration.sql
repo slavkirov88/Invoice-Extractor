@@ -1,0 +1,1 @@
+ALTER TABLE protocols ADD COLUMN IF NOT EXISTS destination TEXT;
