@@ -201,6 +201,12 @@ export default async function ProtocolPrintPage({
                 {protocol.reference_number}
               </div>
             )}
+            {protocol.destination && (
+              <div>
+                <span className="meta-label">Дестинация: </span>
+                {protocol.destination}
+              </div>
+            )}
             {protocol.linked_protocol_number && (
               <div>
                 <span className="meta-label">Към протокол №: </span>
