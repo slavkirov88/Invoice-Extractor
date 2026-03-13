@@ -77,6 +77,7 @@ export function ProtocolDetail({
     linked_protocol_number: protocol.linked_protocol_number?.toString() ?? "",
     compiled_by: protocol.compiled_by ?? "",
     approved_by: protocol.approved_by ?? "",
+    destination: protocol.destination ?? "",
   });
 
   const [draftsA, setDraftsA] = useState<InvoiceDraft[]>(() => toDrafts(sectionA));
@@ -96,6 +97,7 @@ export function ProtocolDetail({
       linked_protocol_number: protocol.linked_protocol_number?.toString() ?? "",
       compiled_by: protocol.compiled_by ?? "",
       approved_by: protocol.approved_by ?? "",
+      destination: protocol.destination ?? "",
     });
     setDraftsA(toDrafts(sectionA));
     setDraftsB(toDrafts(sectionB));
@@ -182,6 +184,7 @@ export function ProtocolDetail({
           : null,
         compiled_by: headerDraft.compiled_by,
         approved_by: headerDraft.approved_by,
+        destination: headerDraft.destination || null,
       })
       .eq("id", protocol.id);
 
@@ -303,6 +306,12 @@ export function ProtocolDetail({
                 {protocol.reference_number || "-"}
               </p>
             </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Дестинация</p>
+              <p className="font-medium">
+                {protocol.destination || "-"}
+              </p>
+            </div>
             {protocol.linked_protocol_number && (
               <div>
                 <p className="text-sm text-muted-foreground">Към протокол №</p>
@@ -392,6 +401,17 @@ export function ProtocolDetail({
                   className="text-muted-foreground"
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Дестинация (незадължително)</Label>
+              <Input
+                value={headerDraft.destination}
+                onChange={(e) =>
+                  setHeaderDraft({ ...headerDraft, destination: e.target.value })
+                }
+                placeholder="напр. Италия, Гърция"
+              />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
