@@ -27,136 +27,138 @@ export function MarginReportButton() {
     }
 
     setLoading(true);
+    try {
+      // Date range for the selected month
+      const startDate = `${y}-${String(m).padStart(2, "0")}-01`;
+      const lastDay = new Date(y, m, 0).getDate();
+      const endDate = `${y}-${String(m).padStart(2, "0")}-${lastDay}`;
 
-    // Date range for the selected month
-    const startDate = `${y}-${String(m).padStart(2, "0")}-01`;
-    const lastDay = new Date(y, m, 0).getDate();
-    const endDate = `${y}-${String(m).padStart(2, "0")}-${lastDay}`;
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Не сте влезли в системата");
+        return;
+      }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      toast.error("Не сте влезли в системата");
-      setLoading(false);
-      return;
-    }
+      const { data: protocols, error } = await supabase
+        .from("protocols")
+        .select(
+          "protocol_number, destination, tax_rate, tax_event_date, invoices(section, amount)"
+        )
+        .eq("user_id", user.id)
+        .gte("tax_event_date", startDate)
+        .lte("tax_event_date", endDate)
+        .order("protocol_number", { ascending: true });
 
-    const { data: protocols, error } = await supabase
-      .from("protocols")
-      .select(
-        "protocol_number, destination, tax_rate, tax_event_date, invoices(section, amount, vat_rate)"
-      )
-      .eq("user_id", user.id)
-      .gte("tax_event_date", startDate)
-      .lte("tax_event_date", endDate)
-      .order("protocol_number", { ascending: true });
+      if (error) {
+        toast.error("Грешка при зареждане: " + error.message);
+        return;
+      }
 
-    if (error) {
-      toast.error("Грешка при зареждане: " + error.message);
-      setLoading(false);
-      return;
-    }
+      if (!protocols || protocols.length === 0) {
+        toast.error("Няма протоколи за избрания период");
+        return;
+      }
 
-    if (!protocols || protocols.length === 0) {
-      toast.error("Няма протоколи за избрания период");
-      setLoading(false);
-      return;
-    }
+      const ExcelJS = (await import("exceljs")).default;
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Справка марж");
 
-    const ExcelJS = (await import("exceljs")).default;
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("Справка марж");
+      // Column widths
+      ws.columns = [
+        { width: 7 },  // A: №
+        { width: 16 }, // B: ПРОТОКОЛ №
+        { width: 18 }, // C: Дестинация (merged with D)
+        { width: 6 },  // D: (merged)
+        { width: 16 }, // E: Данъчна Основа
+        { width: 8 },  // F: ДДС %
+        { width: 14 }, // G: ДДС
+        { width: 14 }, // H: Данъчен период
+      ];
 
-    // Column widths
-    ws.columns = [
-      { width: 7 },  // A: №
-      { width: 16 }, // B: ПРОТОКОЛ №
-      { width: 18 }, // C: Дестинация (merged with D)
-      { width: 6 },  // D: (merged)
-      { width: 16 }, // E: Данъчна Основа
-      { width: 8 },  // F: ДДС %
-      { width: 14 }, // G: ДДС
-      { width: 14 }, // H: Данъчен период
-    ];
-
-    // Row 1 — headers
-    const headerRow = ws.addRow([
-      "№ по ред",
-      "ПРОТОКОЛ №",
-      "Дестинация",
-      null,
-      "Данъчна Основа",
-      "ДДС %",
-      "ДДС",
-      "Данъчен период",
-    ]);
-    headerRow.font = { bold: true };
-    headerRow.alignment = { horizontal: "center", vertical: "middle" };
-    ws.mergeCells("C1:D1");
-
-    // Row 2 — column numbers (standard BG accounting table)
-    const numRow = ws.addRow([1, 2, 3, null, 5, 6, 7, null]);
-    numRow.alignment = { horizontal: "center" };
-    ws.mergeCells("C2:D2");
-
-    const periodLabel = `${String(m).padStart(2, "0")}.${y}`;
-
-    let totalTaxBase = 0;
-    let totalVat = 0;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    protocols.forEach((p: any, idx: number) => {
-      const invoices = (p.invoices ?? []) as Invoice[];
-      const vat = calculateVat(invoices, p.tax_rate);
-      totalTaxBase += vat.taxBase;
-      totalVat += vat.vatAmount;
-
-      const dataRow = ws.addRow([
-        idx + 1,
-        p.protocol_number,
-        p.destination ?? "",
+      // Row 1 — headers
+      const headerRow = ws.addRow([
+        "№ по ред",
+        "ПРОТОКОЛ №",
+        "Дестинация",
         null,
-        Math.round(vat.taxBase * 100) / 100,
-        vat.taxRate,
-        Math.round(vat.vatAmount * 1000) / 1000,
-        periodLabel,
+        "Данъчна Основа",
+        "ДДС %",
+        "ДДС",
+        "Данъчен период",
       ]);
-      ws.mergeCells(`C${dataRow.number}:D${dataRow.number}`);
-      dataRow.getCell(5).numFmt = "#,##0.00";
-      dataRow.getCell(7).numFmt = "#,##0.000";
-    });
+      headerRow.font = { bold: true };
+      headerRow.alignment = { horizontal: "center", vertical: "middle" };
+      ws.mergeCells("C1:D1");
 
-    // Totals row
-    const totalsRow = ws.addRow([
-      "обща Сума",
-      null,
-      null,
-      null,
-      Math.round(totalTaxBase * 100) / 100,
-      null,
-      Math.round(totalVat * 1000) / 1000,
-      null,
-    ]);
-    totalsRow.font = { bold: true };
-    ws.mergeCells(`C${totalsRow.number}:D${totalsRow.number}`);
-    totalsRow.getCell(5).numFmt = "#,##0.00";
-    totalsRow.getCell(7).numFmt = "#,##0.000";
+      // Row 2 — column numbers (standard BG accounting table)
+      const numRow = ws.addRow([1, 2, 3, null, 5, 6, 7, null]);
+      numRow.alignment = { horizontal: "center" };
+      ws.mergeCells("C2:D2");
 
-    // Download
-    const buffer = await wb.xlsx.writeBuffer();
-    const blob = new Blob([buffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `spravka-marzh-${String(m).padStart(2, "0")}-${y}.xlsx`;
-    a.click();
-    URL.revokeObjectURL(url);
+      const periodLabel = `${String(m).padStart(2, "0")}.${y}`;
 
-    setLoading(false);
-    toast.success(`Справката е изтеглена (${protocols.length} протокола)`);
+      let totalTaxBase = 0;
+      let totalVat = 0;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      protocols.forEach((p: any, idx: number) => {
+        const invoices = (p.invoices ?? []) as Invoice[];
+        const vat = calculateVat(invoices, p.tax_rate);
+        totalTaxBase += vat.taxBase;
+        totalVat += vat.vatAmount;
+
+        const dataRow = ws.addRow([
+          idx + 1,
+          p.protocol_number,
+          p.destination ?? "",
+          null,
+          vat.taxBase,
+          vat.taxRate,
+          vat.vatAmount,
+          periodLabel,
+        ]);
+        ws.mergeCells(`C${dataRow.number}:D${dataRow.number}`);
+        dataRow.getCell(5).numFmt = "#,##0.00";
+        dataRow.getCell(7).numFmt = "#,##0.000";
+      });
+
+      // Totals row
+      const totalsRow = ws.addRow([
+        "обща Сума",
+        null,
+        null,
+        null,
+        Math.round(totalTaxBase * 100) / 100,
+        null,
+        Math.round(totalVat * 1000) / 1000,
+        null,
+      ]);
+      totalsRow.font = { bold: true };
+      ws.mergeCells(`C${totalsRow.number}:D${totalsRow.number}`);
+      totalsRow.getCell(5).numFmt = "#,##0.00";
+      totalsRow.getCell(7).numFmt = "#,##0.000";
+
+      // Download
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `spravka-marzh-${String(m).padStart(2, "0")}-${y}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast.success(`Справката е изтеглена (${protocols.length} протокола)`);
+    } catch (err) {
+      toast.error("Неочаквана грешка при генериране");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
