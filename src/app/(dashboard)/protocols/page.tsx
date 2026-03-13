@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { createClient } from "@/lib/supabase/server";
 import { ProtocolList } from "@/components/protocols/ProtocolList";
+import { MarginReportButton } from "@/components/protocols/MarginReportButton";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Plus } from "lucide-react";
@@ -32,12 +33,15 @@ export default async function ProtocolsPage() {
             Управление на протоколи по ЗДДС
           </p>
         </div>
-        <Button asChild>
-          <Link href="/protocols/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Нов протокол
-          </Link>
-        </Button>
+        <div className="flex items-end gap-3">
+          <MarginReportButton />
+          <Button asChild>
+            <Link href="/protocols/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Нов протокол
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <ProtocolList protocols={protocols || []} />
