@@ -20,10 +20,35 @@ Claude Code (с MCP)
 ```
 
 ### MCP Сървъри
-- **Notion MCP:** `@notionhq/notion-mcp-server` — официален, OAuth или Integration Token
-- **Apify MCP:** `apify/actors-mcp-server` — API Key от Apify console
+- **Notion MCP:** `@notionhq/notion-mcp-server` — официален, Integration Token
+- **Apify MCP:** `@apify/actors-mcp-server` — API Key от Apify console
 
-Конфигурация в `~/.claude/settings.json` (mcpServers секция).
+**Конфигурация в `~/.claude/settings.json`:**
+```json
+{
+  "mcpServers": {
+    "notion": {
+      "command": "npx",
+      "args": ["-y", "@notionhq/notion-mcp-server"],
+      "env": { "NOTION_API_KEY": "<your-integration-token>" }
+    },
+    "apify": {
+      "command": "npx",
+      "args": ["-y", "@apify/actors-mcp-server"],
+      "env": { "APIFY_API_TOKEN": "<your-api-key>" }
+    }
+  }
+}
+```
+
+**Как да получиш Notion Integration Token:**
+1. Отиди на notion.so/my-integrations → "New integration"
+2. Копирай "Internal Integration Token" (започва с `secret_`)
+
+**Как да споделиш Notion базата с интеграцията:**
+1. Отвори базата данни в Notion
+2. Горе вдясно → "..." (три точки) → "Connections"
+3. Намери твоята интеграция → "Confirm"
 
 ---
 
@@ -38,7 +63,7 @@ Claude Code (с MCP)
 | Телефон | Phone | От Google Maps |
 | Имейл | Email | Намерен при outreach |
 | Уебсайт | URL | От Google Maps |
-| Размер | Select | Малка (1-5) / Средна (5-20) |
+| Размер | Select | Малка / Средна — попълва се ръчно; прокси: брой ревюта в Google |
 | Статус | Select | 🆕 Нов / 📞 Контактнат / 🎬 Демо изпратено / 🤝 Преговори / ✅ Клиент / ❌ Отказал |
 | Контактнат | Checkbox | Бързо филтриране |
 | Демо изпратено | Checkbox | Бързо филтриране |
@@ -60,7 +85,7 @@ Claude Code (с MCP)
 
 ## Data Collection Strategy
 
-**Инструмент:** Apify Google Maps Scraper
+**Инструмент:** Apify Google Maps Scraper (`compass/google-maps-scraper`)
 **Търсения:**
 - "туристически агенции София"
 - "туристически агенции Пловдив"
@@ -108,7 +133,15 @@ Apify дърпа всички агенции → Claude почиства → Not
 | Малка агенция | Self-serve trial след имейл #1 | 5-10% |
 | Средна агенция | Demo call → trial → плащане | 20-30% след демо |
 
-**Pricing:** Винаги 2 плана (Basic + Pro). Никога само 1.
+**Pricing (работна хипотеза):**
+- Basic: 49 лв/месец — до 50 фактури/месец, 1 потребител
+- Pro: 99 лв/месец — неограничени фактури, до 3 потребители
+
+Винаги предлагай 2 плана — никога само 1. Числата са начална хипотеза, коригирай след първите 5 демота.
+
+**Имейл outreach:** изпраща се ръчно от Gmail. Имейл адресите се намират на уебсайта на агенцията (Contact страница). Google Maps рядко показва имейл.
+
+**Self-serve trial:** зависи от наличието на trial flow в продукта. Докато не е готов — всички конверсии минават през Demo call. Малките агенции получават trial линк само след като trial flow е имплементиран.
 
 ### Daily CRM Routine (20 мин/ден)
 1. Отвори "Follow-up днес" view
