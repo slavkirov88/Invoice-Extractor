@@ -269,6 +269,12 @@ export default function CookiesPage() {
             </p>
             <ul className="list-none pl-0 space-y-1">
               <li>
+                <strong>СЛАМАР ЕООД</strong>, ЕИК: 208287248
+              </li>
+              <li>
+                <strong>Адрес:</strong> гр. Черноморец, м. Аклади, ет. 2, ап. 222
+              </li>
+              <li>
                 <strong>Имейл:</strong> support@travelinvoices.com
               </li>
               <li>

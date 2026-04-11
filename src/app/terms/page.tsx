@@ -26,7 +26,10 @@ export default function TermsPage() {
           <section>
             <h2>1. Общи положения</h2>
             <p>
-              Настоящите Общи условия уреждат отношенията между TravelInvoices
+              Настоящите Общи условия уреждат отношенията между{" "}
+              <strong>СЛАМАР ЕООД</strong>, ЕИК: 208287248, със седалище и адрес
+              на управление: гр. Черноморец, м. Аклади, ет. 2, ап. 222,
+              оперираща платформата TravelInvoices
               (&quot;Платформата&quot;, &quot;Услугата&quot;, &quot;ние&quot;) и
               потребителите (&quot;Потребител&quot;, &quot;вие&quot;), които
               използват уеб приложението TravelInvoices, достъпно на адрес{" "}
@@ -278,6 +281,12 @@ export default function TermsPage() {
               нас на:
             </p>
             <ul className="list-none pl-0 space-y-1">
+              <li>
+                <strong>СЛАМАР ЕООД</strong>, ЕИК: 208287248
+              </li>
+              <li>
+                <strong>Адрес:</strong> гр. Черноморец, м. Аклади, ет. 2, ап. 222
+              </li>
               <li>
                 <strong>Имейл:</strong> support@travelinvoices.com
               </li>

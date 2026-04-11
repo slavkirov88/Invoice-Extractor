@@ -212,7 +212,7 @@ function HeroSection() {
           className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-1.5 text-sm text-violet-300 mb-8"
         >
           <Sparkles className="h-4 w-4" />
-          <span>Единственият инструмент, построен специално за туроператори по ЗДДС маржов метод</span>
+          <span>Създаден за туристически агенции и счетоводителите, които ги обслужват</span>
         </motion.div>
 
         {/* Main heading */}
@@ -249,7 +249,7 @@ function HeroSection() {
           transition={{ delay: 0.5 }}
           className="mx-auto max-w-2xl text-base sm:text-lg md:text-xl text-muted-foreground mb-10 px-2 sm:px-0"
         >
-          AI-базиран инструмент, създаден специално за туристически агенции.
+          AI-базиран инструмент за туристически агенции и техните счетоводители.
           Качвате PDF фактура — ние извличаме данните и генерираме протоколи по{" "}
           <span className="text-foreground font-medium">ЗДДС маржов метод</span>{" "}
           за секунди.
@@ -459,7 +459,7 @@ function ProblemSection() {
               Познато ли ви е?
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Повечето туристически агенции все още управляват фактурите си ръчно.
+              Туристически агенции и техните счетоводители все още управляват фактурите ръчно.
               Резултатът — загубено време, грешки и стрес при данъчни проверки.
             </p>
           </div>
@@ -648,7 +648,7 @@ function VideoSection() {
               Вижте как работи на практика
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              3-минутно демо, което показва целия процес — от качване на фактура
+              4-минутно демо, което показва целия процес — от качване на фактура
               до готов протокол.
             </p>
           </div>
@@ -658,13 +658,24 @@ function VideoSection() {
           <div className="relative mx-auto max-w-4xl">
             <div className="relative aspect-video rounded-2xl border border-border overflow-hidden shadow-2xl">
               <iframe
-                src="https://www.loom.com/embed/2419bf8326504af29fea0de0d0a92197?hide_owner=true&hide_share=true&hide_title=true&hideEmbedTopBar=true"
+                src="https://www.youtube.com/embed/SVuwiuhDivg?rel=0&modestbranding=1"
                 allowFullScreen
                 className="absolute inset-0 w-full h-full"
               />
             </div>
             {/* Glow effect */}
             <div className="absolute -inset-4 bg-violet-600/10 rounded-3xl blur-2xl -z-10" />
+          </div>
+
+          <div className="text-center mt-6">
+            <a
+              href="https://app.supademo.com/demo/cmnppo0cf8er9aburzg3x5vo2"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4"
+            >
+              Или разгледайте интерактивното демо стъпка по стъпка →
+            </a>
           </div>
         </ScrollReveal>
       </div>
@@ -746,7 +757,7 @@ function PricingSection() {
       price: "20",
       savings: "−40%",
       period: "/месец",
-      description: "До 200 фактури и 50 протокола месечно.",
+      description: "До 200 фактури и 50 протокола месечно. За малки агенции или счетоводители с 1-2 клиента.",
       trial: "14 дни безплатно",
       features: [
         "До 200 фактури/месец",
@@ -766,7 +777,7 @@ function PricingSection() {
       price: "40",
       savings: "−50%",
       period: "/месец",
-      description: "Неограничен обем — без тавани, без компромиси.",
+      description: "Неограничени фактури и протоколи. За счетоводители с много агенции или големи туроператори.",
       trial: "14 дни безплатно",
       features: [
         "Неограничени фактури",
@@ -904,7 +915,11 @@ function FAQSection() {
     },
     {
       q: "Поддържате ли маржовия метод по ЗДДС?",
-      a: "Да! TravelInvoices е създаден специално за туристически агенции, работещи по маржовия метод (чл. 136–141 ЗДДС). Автоматично генерирани протоколи с Раздел А (получени суми), Раздел Б (платени суми) и Раздел В (ДДС калкулации).",
+      a: "Да! TravelInvoices е създаден специално за туристически агенции и счетоводителите, които ги обслужват, работещи по маржовия метод (чл. 136–141 ЗДДС). Автоматично генерирани протоколи с Раздел А (получени суми), Раздел Б (платени суми) и Раздел В (ДДС калкулации).",
+    },
+    {
+      q: "Подходящо ли е за счетоводители, обслужващи туристически агенции?",
+      a: "Абсолютно — TravelInvoices е създаден както за агенциите, така и за техните счетоводители. Ако обслужвате няколко агенции, Бизнес планът ви дава неограничени фактури и протоколи. Агенцията качва PDF-ите, вие получавате готов протокол в Excel — без преписване, без грешки.",
     },
     {
       q: "Сигурни ли са данните ми?",
@@ -1008,7 +1023,7 @@ function CTASection() {
                 време и нерви?
               </h2>
               <p className="text-lg text-white/80 max-w-2xl mx-auto mb-10">
-                Присъединете се към туристическите агенции, които вече управляват
+                Присъединете се към агенциите и счетоводителите, които вече управляват
                 фактурите си автоматично. Тествайте 14 дни безплатно.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -1045,7 +1060,7 @@ function Footer() {
             </Link>
             <p className="text-sm text-muted-foreground max-w-sm mb-6">
               AI-базиран инструмент за управление на фактури и протоколи по ЗДДС
-              маржов метод. Създаден за туристически агенции в България.
+              маржов метод. Създаден за туристически агенции и техните счетоводители.
             </p>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
@@ -1121,7 +1136,10 @@ function Footer() {
         </div>
 
         <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <span>&copy; 2026 TravelInvoices. Всички права запазени.</span>
+          <div>
+            <span>&copy; 2026 СЛАМАР ЕООД. Всички права запазени.</span>
+            <span className="block text-xs mt-1">ЕИК: 208287248 | гр. Черноморец, м. Аклади, ет. 2, ап. 222</span>
+          </div>
           <span>Сигурна платформа с EU хостинг</span>
         </div>
       </div>
