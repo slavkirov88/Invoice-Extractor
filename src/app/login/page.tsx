@@ -14,7 +14,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Receipt } from "lucide-react";
+import { Receipt, CheckCircle2 } from "lucide-react";
+import { useLocale } from "@/lib/i18n/context";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -22,8 +24,11 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("login");
+  const [justRegistered, setJustRegistered] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+  const { t } = useLocale();
 
   const reset = () => {
     setError("");
@@ -38,7 +43,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setError("Грешен имейл или парола.");
+      setError(t.auth.toastInvalidCredentials);
       setLoading(false);
     } else {
       router.push("/overview");
@@ -61,12 +66,19 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Грешка при регистрация.");
+        setError(data.error || t.auth.toastRegisterError);
       } else {
-        setMessage("Проверете имейла си за потвърждение на регистрацията.");
+        setMessage(t.auth.toastAccountCreated);
+        // Auto-switch to login tab after a short delay
+        setTimeout(() => {
+          setActiveTab("login");
+          setJustRegistered(true);
+          // Clear the glow after 4 seconds
+          setTimeout(() => setJustRegistered(false), 4000);
+        }, 1500);
       }
     } catch {
-      setError("Грешка при свързване със сървъра.");
+      setError(t.auth.toastServerError);
     }
 
     setLoading(false);
@@ -74,7 +86,7 @@ export default function LoginPage() {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      setError("Въведете имейл адрес първо.");
+      setError(t.auth.toastEnterEmail);
       return;
     }
     setLoading(true);
@@ -87,7 +99,7 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
     } else {
-      setMessage("Изпратихме линк за смяна на паролата на имейла ви.");
+      setMessage(t.auth.toastResetSent);
     }
     setLoading(false);
   };
@@ -100,20 +112,25 @@ export default function LoginPage() {
             <Receipt className="h-6 w-6 text-primary" />
           </div>
           <CardTitle className="text-2xl">TravelInvoices</CardTitle>
-          <CardDescription>Управление на фактури и протоколи</CardDescription>
+          <CardDescription>{t.auth.title}</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="login" onValueChange={reset}>
+          <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); reset(); setJustRegistered(false); }}>
             <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="login">Вход</TabsTrigger>
-              <TabsTrigger value="register">Нова регистрация</TabsTrigger>
+              <TabsTrigger
+                value="login"
+                className={justRegistered ? "animate-glow-pulse ring-2 ring-emerald-500/60 bg-emerald-500/10 text-emerald-400" : ""}
+              >
+                {t.auth.loginTab}
+              </TabsTrigger>
+              <TabsTrigger value="register">{t.auth.registerTab}</TabsTrigger>
             </TabsList>
 
             {/* ── Вход ── */}
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="login-email">Имейл</Label>
+                  <Label htmlFor="login-email">{t.auth.emailLabel}</Label>
                   <Input
                     id="login-email"
                     type="email"
@@ -125,13 +142,13 @@ export default function LoginPage() {
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="login-password">Парола</Label>
+                    <Label htmlFor="login-password">{t.auth.passwordLabel}</Label>
                     <button
                       type="button"
                       onClick={handleForgotPassword}
                       className="text-xs text-muted-foreground hover:text-primary transition-colors"
                     >
-                      Забравена парола?
+                      {t.auth.forgotPassword}
                     </button>
                   </div>
                   <Input
@@ -144,44 +161,84 @@ export default function LoginPage() {
                   />
                 </div>
                 {error && <p className="text-sm text-destructive">{error}</p>}
-                {message && <p className="text-sm text-green-500">{message}</p>}
+                {message && <p className="text-sm text-emerald-500">{message}</p>}
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Зареждане..." : "Вход"}
+                  {loading ? t.common.loading : t.auth.loginButton}
                 </Button>
               </form>
             </TabsContent>
 
-            {/* ── Нова регистрация ── */}
             <TabsContent value="register">
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="reg-email">Имейл</Label>
-                  <Input
-                    id="reg-email"
-                    type="email"
-                    placeholder="email@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="reg-password">Парола</Label>
-                  <Input
-                    id="reg-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </div>
-                {error && <p className="text-sm text-destructive">{error}</p>}
-                {message && <p className="text-sm text-green-500">{message}</p>}
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Зареждане..." : "Създай акаунт"}
-                </Button>
-              </form>
+              <AnimatePresence mode="wait">
+                {message ? (
+                  <motion.div
+                    key="success"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex flex-col items-center gap-4 py-8"
+                  >
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 200, damping: 12, delay: 0.1 }}
+                    >
+                      <CheckCircle2 className="h-16 w-16 text-emerald-500" />
+                    </motion.div>
+                    <motion.p
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="text-lg font-medium text-emerald-500 text-center"
+                    >
+                      {message}
+                    </motion.p>
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.6 }}
+                      className="text-sm text-muted-foreground text-center"
+                    >
+                      {t.auth.toastNowLogin}
+                    </motion.p>
+                  </motion.div>
+                ) : (
+                  <motion.form
+                    key="form"
+                    initial={{ opacity: 1 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    onSubmit={handleSignUp}
+                    className="space-y-4"
+                  >
+                    <div className="space-y-2">
+                      <Label htmlFor="reg-email">{t.auth.emailLabel}</Label>
+                      <Input
+                        id="reg-email"
+                        type="email"
+                        placeholder="email@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="reg-password">{t.auth.passwordLabel}</Label>
+                      <Input
+                        id="reg-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                    {error && <p className="text-sm text-destructive">{error}</p>}
+                    <Button type="submit" className="w-full" disabled={loading}>
+                      {loading ? t.common.loading : t.auth.registerButton}
+                    </Button>
+                  </motion.form>
+                )}
+              </AnimatePresence>
             </TabsContent>
           </Tabs>
         </CardContent>
