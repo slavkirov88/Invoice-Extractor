@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       "subscription_data[trial_period_days]": "14",
       "subscription_data[trial_settings][end_behavior][missing_payment_method]": "cancel",
       "subscription_data[metadata][userId]": user.id,
-      payment_method_collection: "if_required",
+      payment_method_collection: "always",
       customer_email: user.email!,
       "metadata[userId]": user.id,
       success_url: `${origin}/overview?session_id={CHECKOUT_SESSION_ID}&success=true`,
