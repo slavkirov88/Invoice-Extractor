@@ -69,6 +69,10 @@ export default function LoginPage() {
         setError(data.error || t.auth.toastRegisterError);
       } else {
         setMessage(t.auth.toastAccountCreated);
+        // Track registration conversion for Meta Pixel
+        if (typeof window !== "undefined" && (window as any).fbq) {
+          (window as any).fbq("track", "CompleteRegistration");
+        }
         // Auto-switch to login tab after a short delay
         setTimeout(() => {
           setActiveTab("login");

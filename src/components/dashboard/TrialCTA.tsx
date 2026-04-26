@@ -21,7 +21,12 @@ async function startCheckout(priceId: string) {
   });
   if (!res.ok) throw new Error("checkout_failed");
   const { url } = await res.json();
-  if (url) window.location.href = url;
+  if (url) {
+    if (typeof window !== "undefined" && (window as any).fbq) {
+      (window as any).fbq("track", "InitiateCheckout");
+    }
+    window.location.href = url;
+  }
 }
 
 export function TrialCTA() {
