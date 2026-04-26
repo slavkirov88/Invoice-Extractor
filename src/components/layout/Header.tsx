@@ -11,16 +11,8 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { usePathname } from "next/navigation";
-
-const routeLabels: Record<string, string> = {
-  overview: "Табло",
-  protocols: "Протоколи",
-  new: "Нов протокол",
-  invoices: "Фактури",
-  add: "Добави фактура",
-  settings: "Настройки",
-  admin: "Админ",
-};
+import { useLocale } from "@/lib/i18n/context";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 function isUUID(str: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
@@ -28,7 +20,20 @@ function isUUID(str: string) {
 
 export function Header() {
   const pathname = usePathname();
+  const { t } = useLocale();
   const segments = pathname.split("/").filter(Boolean);
+
+  const routeLabels: Record<string, string> = {
+    overview: t.header.dashboard,
+    protocols: t.protocols.title,
+    new: t.header.newProtocol,
+    invoices: t.header.invoices,
+    add: t.header.addInvoice,
+    settings: t.header.settings,
+    admin: t.header.admin,
+    bulk: t.header.bulk,
+    email: t.header.email,
+  };
 
   // Skip "overview" to avoid "Табло > Табло"
   const displaySegments = segments.filter((s) => s !== "overview");
@@ -40,14 +45,14 @@ export function Header() {
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/overview">Табло</BreadcrumbLink>
+            <BreadcrumbLink href="/overview">{t.header.dashboard}</BreadcrumbLink>
           </BreadcrumbItem>
           {displaySegments.map((segment, index) => {
             const segmentIndex = segments.indexOf(segment);
             const href = "/" + segments.slice(0, segmentIndex + 1).join("/");
             const isLast = index === displaySegments.length - 1;
             const label = isUUID(segment)
-              ? "Детайли"
+              ? t.header.details
               : routeLabels[segment] || segment;
 
             return (
@@ -63,6 +68,9 @@ export function Header() {
           })}
         </BreadcrumbList>
       </Breadcrumb>
+      <div className="ml-auto">
+        <LanguageSwitcher />
+      </div>
     </header>
   );
 }

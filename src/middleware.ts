@@ -68,6 +68,17 @@ export async function middleware(request: NextRequest) {
     // If auth check fails, allow the request to proceed
   }
 
+  // Set locale cookie if not present
+  if (!request.cookies.get("locale")) {
+    const acceptLang = request.headers.get("accept-language") || "";
+    const locale = acceptLang.toLowerCase().startsWith("en") ? "en" : "bg";
+    supabaseResponse.cookies.set("locale", locale, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+    });
+  }
+
   return supabaseResponse;
 }
 

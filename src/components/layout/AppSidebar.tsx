@@ -29,31 +29,33 @@ import {
 } from "@/components/ui/sidebar";
 import { createClient } from "@/lib/supabase/client";
 import type { UserCredits } from "@/lib/credits";
+import { useLocale } from "@/lib/i18n/context";
 
 const ADMIN_EMAIL = "slavkirov@abv.bg";
 
-const navItems = [
-  {
-    title: "Dashboard",
-    href: "/overview",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "Протоколи",
-    href: "/protocols",
-    icon: FileText,
-  },
-  {
-    title: "Имейли",
-    href: "/email",
-    icon: Inbox,
-  },
-];
-
 export function AppSidebar() {
   const pathname = usePathname();
+  const { t } = useLocale();
   const [isAdmin, setIsAdmin] = useState(false);
   const [credits, setCredits] = useState<UserCredits | null>(null);
+
+  const navItems = [
+    {
+      title: t.sidebar.dashboard,
+      href: "/overview",
+      icon: LayoutDashboard,
+    },
+    {
+      title: t.sidebar.protocols,
+      href: "/protocols",
+      icon: FileText,
+    },
+    {
+      title: t.sidebar.emails,
+      href: "/email",
+      icon: Inbox,
+    },
+  ];
 
   useEffect(() => {
     async function init() {
@@ -87,7 +89,7 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Навигация</SidebarGroupLabel>
+          <SidebarGroupLabel>{t.sidebar.navigation}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
@@ -114,7 +116,7 @@ export function AppSidebar() {
                 }`}
               >
                 <Plus className="h-4 w-4" />
-                Добави фактура
+                {t.sidebar.addInvoice}
               </Link>
             </div>
           </SidebarGroupContent>
@@ -124,12 +126,26 @@ export function AppSidebar() {
         {/* Subscription widget */}
         {credits && (
           <div className="rounded-lg border border-border bg-muted/50 p-3">
-            {credits.isUnlimited ? (
-              <div className="flex items-center gap-2">
-                <BadgeCheck className="h-4 w-4 text-green-400" />
-                <span className="text-sm font-medium text-green-400">
-                  {credits.planName}
-                </span>
+            {credits.hasSubscription ? (
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <BadgeCheck className="h-4 w-4 text-green-400" />
+                  <span className="text-sm font-medium text-green-400">
+                    {credits.plan === "professional" ? t.plans.starter : credits.plan === "business" ? t.plans.business : t.plans.free}
+                  </span>
+                </div>
+                {credits.subscriptionStatus === "trialing" && credits.currentPeriodEnd && (
+                  <div className="text-xs text-muted-foreground">
+                    {(() => {
+                      const days = Math.max(0, Math.ceil((new Date(credits.currentPeriodEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+                      return (
+                        <span className={days <= 3 ? "text-amber-400 font-medium" : ""}>
+                          {days} {days === 1 ? t.common.day : t.common.days} {t.sidebar.trialDaysRemaining}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
             ) : (
               <Link
@@ -137,7 +153,7 @@ export function AppSidebar() {
                 className="flex items-center justify-center gap-1.5 rounded-md bg-violet-600 px-3 py-2 text-xs font-medium text-white hover:bg-violet-700 transition-colors"
               >
                 <Zap className="h-3 w-3" />
-                Започни безплатен тест
+                {t.sidebar.startFreeTrial}
               </Link>
             )}
           </div>
@@ -152,7 +168,7 @@ export function AppSidebar() {
               >
                 <Link href="/admin">
                   <Shield className="h-4 w-4" />
-                  <span>Админ</span>
+                  <span>{t.sidebar.admin}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -161,7 +177,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild isActive={pathname === "/settings"}>
               <Link href="/settings">
                 <Settings className="h-4 w-4" />
-                <span>Настройки</span>
+                <span>{t.sidebar.settings}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -169,7 +185,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild>
               <a href="mailto:support@travelinvoices.com">
                 <Mail className="h-4 w-4" />
-                <span>Поддръжка</span>
+                <span>{t.sidebar.support}</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>

@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7c3aed"/>
+      <stop offset="100%" style="stop-color:#a855f7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+
+  <!-- Receipt/invoice shape with zigzag bottom -->
+  <path d="M144 80 H368 V352 L340 332 L312 352 L284 332 L256 352 L228 332 L200 352 L172 332 L144 352 Z" fill="white"/>
+
+  <!-- Document lines -->
+  <rect x="192" y="148" width="128" height="28" rx="14" fill="#7c3aed"/>
+  <rect x="192" y="196" width="88" height="22" rx="11" fill="#7c3aed" opacity="0.45"/>
+  <rect x="192" y="236" width="112" height="22" rx="11" fill="#7c3aed" opacity="0.45"/>
+  <rect x="192" y="276" width="72" height="22" rx="11" fill="#7c3aed" opacity="0.3"/>
+
+  <!-- Checkmark badge -->
+  <circle cx="368" cy="136" r="56" fill="#a855f7"/>
+  <circle cx="368" cy="136" r="56" fill="white" opacity="0.15"/>
+  <path d="M344 136 L360 154 L394 118" stroke="white" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- AI sparkle -->
+  <g transform="translate(156, 100)">
+    <path d="M0 -16 L4 -4 L16 0 L4 4 L0 16 L-4 4 L-16 0 L-4 -4 Z" fill="white" opacity="0.8"/>
+  </g>
+
+  <!-- TravelInvoices text -->
+  <text x="256" y="440" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="52" fill="white" letter-spacing="2">TravelInvoices</text>
+  <text x="256" y="472" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="400" font-size="24" fill="white" opacity="0.75">AI протоколи по маржов метод</text>
+</svg>

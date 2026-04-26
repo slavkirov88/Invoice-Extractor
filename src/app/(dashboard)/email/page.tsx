@@ -48,19 +48,21 @@ import {
   FilePlus,
   Eye,
   EyeOff,
+  CloudDownload,
 } from "lucide-react";
 import type { EmailAccount, EmailAttachment, Protocol } from "@/types";
+import { useLocale } from "@/lib/i18n/context";
 
 // ── Provider presets ────────────────────────────────────────────────────────
 type ProviderId = "gmail" | "mail_bg" | "outlook" | "yahoo" | "thunderbird" | "other";
 
-const PROVIDERS: Record<ProviderId, { label: string; description: string; imap_host: string; imap_port: number; imap_secure: boolean }> = {
-  gmail:       { label: "Gmail",           description: "Google поща (@gmail.com)",        imap_host: "imap.gmail.com",            imap_port: 993, imap_secure: true  },
-  mail_bg:     { label: "Mail.bg",         description: "Българска поща (@mail.bg)",       imap_host: "imap.mail.bg",              imap_port: 993, imap_secure: true  },
-  outlook:     { label: "Outlook",         description: "Microsoft / Office 365",          imap_host: "outlook.office365.com",     imap_port: 993, imap_secure: true  },
-  yahoo:       { label: "Yahoo Mail",      description: "Yahoo поща (@yahoo.com)",         imap_host: "imap.mail.yahoo.com",       imap_port: 993, imap_secure: true  },
-  thunderbird: { label: "Служебна поща",   description: "Фирмена поща чрез Thunderbird",  imap_host: "",                          imap_port: 143, imap_secure: false },
-  other:       { label: "Друг",            description: "Друг имейл доставчик",            imap_host: "",                          imap_port: 993, imap_secure: true  },
+const PROVIDERS: Record<ProviderId, { imap_host: string; imap_port: number; imap_secure: boolean }> = {
+  gmail:       { imap_host: "imap.gmail.com",            imap_port: 993, imap_secure: true  },
+  mail_bg:     { imap_host: "imap.mail.bg",              imap_port: 993, imap_secure: true  },
+  outlook:     { imap_host: "outlook.office365.com",     imap_port: 993, imap_secure: true  },
+  yahoo:       { imap_host: "imap.mail.yahoo.com",       imap_port: 993, imap_secure: true  },
+  thunderbird: { imap_host: "",                          imap_port: 143, imap_secure: false },
+  other:       { imap_host: "",                          imap_port: 993, imap_secure: true  },
 };
 
 // ── Schemas ────────────────────────────────────────────────────────────────
@@ -84,19 +86,19 @@ function formatBytes(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function formatDate(dateStr: string | null): string {
+function formatDateWithLocale(dateStr: string | null, locale: string): string {
   if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("bg-BG", {
+  return new Date(dateStr).toLocaleDateString(locale === "bg" ? "bg-BG" : "en-US", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   });
 }
 
-function monthLabel(dateStr: string | null): string {
-  if (!dateStr) return "Без дата";
+function monthLabelWithLocale(dateStr: string | null, locale: string, noDateLabel: string): string {
+  if (!dateStr) return noDateLabel;
   const d = new Date(dateStr);
-  return d.toLocaleDateString("bg-BG", { month: "long", year: "numeric" });
+  return d.toLocaleDateString(locale === "bg" ? "bg-BG" : "en-US", { month: "long", year: "numeric" });
 }
 
 function monthKey(dateStr: string | null): string {
@@ -104,8 +106,8 @@ function monthKey(dateStr: string | null): string {
   return dateStr.slice(0, 7); // "2026-02"
 }
 
-function senderLabel(from: string | null): string {
-  if (!from) return "Неизвестен подател";
+function senderLabel(from: string | null, unknownLabel: string): string {
+  if (!from) return unknownLabel;
   // Extract name from "Name <email>" format
   const match = from.match(/^(.+?)\s*</);
   return match ? match[1].trim() : from;
@@ -115,7 +117,7 @@ function senderLabel(from: string | null): string {
 function groupAttachments(attachments: EmailAttachment[]) {
   const groups: Record<string, Record<string, EmailAttachment[]>> = {};
   for (const att of attachments) {
-    const sender = att.email_from || "Неизвестен подател";
+    const sender = att.email_from || "unknown";
     const month = monthKey(att.email_date);
     if (!groups[sender]) groups[sender] = {};
     if (!groups[sender][month]) groups[sender][month] = [];
@@ -142,7 +144,9 @@ function AddToProtocolDialog({
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const { t } = useLocale();
   const [extracting, setExtracting] = useState(true);
+  const [extractStep, setExtractStep] = useState<"downloading" | "extracting">("extracting");
   const [saving, setSaving] = useState(false);
   const [extracted, setExtracted] = useState<ExtractedData>({
     documentNumber: "",
@@ -157,6 +161,24 @@ function AddToProtocolDialog({
   useEffect(() => {
     async function extract() {
       try {
+        // Download from IMAP whenever we have imap_uid (ensures file is in Storage)
+        if (attachment.imap_uid) {
+          setExtractStep("downloading");
+          const dlRes = await fetch("/api/email/download-attachment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ attachmentIds: [attachment.id] }),
+          });
+          const dlData = await dlRes.json();
+          if (!dlRes.ok || dlData.downloaded === 0) {
+            const errMsg = dlData.errors?.[0]?.error || dlData.error || t.emailPage.toastDownloadError;
+            toast.error(errMsg);
+            setExtracting(false);
+            return;
+          }
+        }
+
+        setExtractStep("extracting");
         const res = await fetch("/api/email/extract-attachment", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -170,29 +192,29 @@ function AddToProtocolDialog({
             amount: String(data.amount),
           });
         } else {
-          toast.error(data.error || "Грешка при извличане на данни");
+          toast.error(data.error || t.emailPage.toastExtractError);
         }
       } catch {
-        toast.error("Грешка при свързване");
+        toast.error(t.emailPage.toastConnectionError);
       } finally {
         setExtracting(false);
       }
     }
     extract();
-  }, [attachment.id]);
+  }, [attachment.id, attachment.status]);
 
   const selectedProtocol = protocols.find((p) => p.id === protocolId);
   const isMixed = selectedProtocol?.protocol_type === "mixed";
 
   const handleSave = async () => {
     if (!protocolId) {
-      toast.error("Изберете протокол");
+      toast.error(t.emailPage.toastSelectProtocol);
       return;
     }
     setSaving(true);
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { toast.error("Не сте влезли"); setSaving(false); return; }
+    if (!user) { toast.error(t.emailPage.toastNotLoggedIn); setSaving(false); return; }
 
     const section = invoiceType === "income" ? "A" : "B";
 
@@ -210,7 +232,7 @@ function AddToProtocolDialog({
       protocol_id: protocolId,
       section,
       sequence_number: nextSeq,
-      document_type: "Фактура",
+      document_type: t.common.invoice,
       document_number: extracted.documentNumber,
       issue_date: extracted.issueDate,
       amount: parseFloat(extracted.amount) || 0,
@@ -220,9 +242,9 @@ function AddToProtocolDialog({
     });
 
     if (error) {
-      toast.error("Грешка при запис: " + error.message);
+      toast.error(t.emailPage.toastSaveError + ": " + error.message);
     } else {
-      toast.success("Фактурата е добавена към протокола");
+      toast.success(t.emailPage.toastInvoiceAdded);
       onSuccess();
       onClose();
     }
@@ -235,7 +257,7 @@ function AddToProtocolDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FilePlus className="h-5 w-5 text-violet-400" />
-            Добави към протокол
+            {t.emailPage.addToProtocol}
           </DialogTitle>
           <DialogDescription className="truncate">{attachment.filename}</DialogDescription>
         </DialogHeader>
@@ -243,21 +265,25 @@ function AddToProtocolDialog({
         {extracting ? (
           <div className="flex flex-col items-center justify-center py-8 gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-violet-400" />
-            <p className="text-sm text-muted-foreground">AI извлича данните от фактурата...</p>
+            <p className="text-sm text-muted-foreground">
+              {extractStep === "downloading"
+                ? t.emailPage.downloadingFile
+                : t.emailPage.extractingData}
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
             {/* Extracted data */}
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">№ на документа</Label>
+                <Label className="text-xs">{t.emailPage.docNumber}</Label>
                 <Input
                   value={extracted.documentNumber}
                   onChange={(e) => setExtracted({ ...extracted, documentNumber: e.target.value })}
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Дата</Label>
+                <Label className="text-xs">{t.emailPage.dateLabel}</Label>
                 <Input
                   type="date"
                   value={extracted.issueDate}
@@ -265,7 +291,7 @@ function AddToProtocolDialog({
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Сума (EUR)</Label>
+                <Label className="text-xs">{t.emailPage.amountLabel}</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -277,16 +303,16 @@ function AddToProtocolDialog({
 
             {/* Protocol */}
             <div className="space-y-1">
-              <Label className="text-xs">Протокол</Label>
+              <Label className="text-xs">{t.emailPage.protocolLabel}</Label>
               <Select value={protocolId} onValueChange={setProtocolId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Изберете протокол" />
+                  <SelectValue placeholder={t.emailPage.selectProtocol} />
                 </SelectTrigger>
                 <SelectContent>
                   {protocols.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       №{p.protocol_number} — {p.supplier_name} (
-                      {p.protocol_type === "eu" ? "в ЕС" : p.protocol_type === "non_eu" ? "извън ЕС" : p.protocol_type === "mixed" ? "Смесен" : p.protocol_type})
+                      {p.protocol_type === "eu" ? t.protocols.typeEU : p.protocol_type === "non_eu" ? t.protocols.typeNonEU : p.protocol_type === "mixed" ? t.protocols.typeMixed : p.protocol_type})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -295,14 +321,14 @@ function AddToProtocolDialog({
 
             {/* Invoice type */}
             <div className="space-y-1">
-              <Label className="text-xs">Тип фактура</Label>
+              <Label className="text-xs">{t.emailPage.invoiceTypeLabel}</Label>
               <Select value={invoiceType} onValueChange={(v: "income" | "expense") => setInvoiceType(v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="income">Приходна (Раздел А)</SelectItem>
-                  <SelectItem value="expense">Разходна (Раздел Б)</SelectItem>
+                  <SelectItem value="income">{t.emailPage.incomeOption}</SelectItem>
+                  <SelectItem value="expense">{t.emailPage.expenseOption}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -310,14 +336,14 @@ function AddToProtocolDialog({
             {/* VAT rate for mixed protocols */}
             {isMixed && (
               <div className="space-y-1">
-                <Label className="text-xs">ДДС ставка</Label>
+                <Label className="text-xs">{t.emailPage.vatRateLabel}</Label>
                 <Select value={String(vatRate)} onValueChange={(v) => setVatRate(Number(v) as 20 | 0)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="20">в ЕС — 20%</SelectItem>
-                    <SelectItem value="0">извън ЕС — 0%</SelectItem>
+                    <SelectItem value="20">{t.emailPage.vatEU}</SelectItem>
+                    <SelectItem value="0">{t.emailPage.vatNonEU}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -326,14 +352,14 @@ function AddToProtocolDialog({
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Отказ</Button>
+          <Button variant="outline" onClick={onClose}>{t.emailPage.cancelButton}</Button>
           <Button
             onClick={handleSave}
             disabled={extracting || saving || !protocolId}
             className="bg-violet-600 hover:bg-violet-700"
           >
             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Добави
+            {t.emailPage.addButton}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -353,6 +379,7 @@ function FolderView({
   onDownload: (att: EmailAttachment) => void;
   onAddToProtocol: (att: EmailAttachment) => void;
 }) {
+  const { t, locale } = useLocale();
   const [openSenders, setOpenSenders] = useState<Record<string, boolean>>({});
   const [openMonths, setOpenMonths] = useState<Record<string, boolean>>({});
 
@@ -369,9 +396,9 @@ function FolderView({
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12 text-center">
           <Paperclip className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-muted-foreground">Няма прикачени файлове</p>
+          <p className="text-muted-foreground">{t.emailPage.noAttachments}</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Натиснете "Провери имейли" или изчакайте автоматичната синхронизация
+            {t.emailPage.noAttachmentsHint}
           </p>
         </CardContent>
       </Card>
@@ -401,11 +428,11 @@ function FolderView({
               )}
               <FolderOpen className="h-5 w-5 text-violet-400 shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">{senderLabel(sender)}</p>
+                <p className="font-medium truncate">{senderLabel(sender, t.emailPage.unknownSender)}</p>
                 <p className="text-xs text-muted-foreground truncate">{sender}</p>
               </div>
               <span className="text-xs text-muted-foreground shrink-0">
-                {totalFiles} {totalFiles === 1 ? "файл" : "файла"}
+                {totalFiles} {totalFiles === 1 ? t.common.file : t.common.files}
               </span>
             </button>
 
@@ -415,7 +442,7 @@ function FolderView({
                 {months.map((mk) => {
                   const files = grouped[sender][mk];
                   const monthOpen = openMonths[`${sender}__${mk}`] ?? true;
-                  const label = monthLabel(files[0]?.email_date ?? null);
+                  const label = monthLabelWithLocale(files[0]?.email_date ?? null, locale, t.emailPage.noDate);
 
                   return (
                     <div key={mk} className="border-b border-border last:border-0">
@@ -430,7 +457,7 @@ function FolderView({
                         )}
                         <span className="text-sm font-medium capitalize">{label}</span>
                         <span className="text-xs text-muted-foreground ml-auto">
-                          {files.length} {files.length === 1 ? "файл" : "файла"}
+                          {files.length} {files.length === 1 ? t.common.file : t.common.files}
                         </span>
                       </button>
 
@@ -442,11 +469,14 @@ function FolderView({
                               key={att.id}
                               className="flex items-center gap-3 px-8 py-2.5 border-t border-border/50 hover:bg-muted/30 transition-colors"
                             >
-                              <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                              {att.status === "pending"
+                                ? <CloudDownload className="h-4 w-4 text-violet-400/70 shrink-0" />
+                                : <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                              }
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium truncate">{att.filename}</p>
                                 <p className="text-xs text-muted-foreground">
-                                  {formatDate(att.email_date)} · {formatBytes(att.file_size)}
+                                  {formatDateWithLocale(att.email_date, locale)} · {formatBytes(att.file_size)}
                                   {att.email_subject && ` · ${att.email_subject}`}
                                 </p>
                               </div>
@@ -458,7 +488,7 @@ function FolderView({
                                   onClick={() => onAddToProtocol(att)}
                                 >
                                   <FilePlus className="h-3.5 w-3.5" />
-                                  Добави към протокол
+                                  {t.emailPage.addToProtocol}
                                 </Button>
                                 <Button
                                   variant="ghost"
@@ -488,6 +518,7 @@ function FolderView({
 
 // ── Main Page ──────────────────────────────────────────────────────────────
 export default function EmailPage() {
+  const { t, locale } = useLocale();
   const [accounts, setAccounts] = useState<EmailAccount[]>([]);
   const [attachments, setAttachments] = useState<EmailAttachment[]>([]);
   const [protocols, setProtocols] = useState<Protocol[]>([]);
@@ -531,7 +562,7 @@ export default function EmailPage() {
       const res = await fetch("/api/email/accounts");
       if (res.ok) setAccounts(await res.json());
     } catch {
-      toast.error("Грешка при зареждане на акаунтите");
+      toast.error(t.emailPage.toastLoadAccountsError);
     } finally {
       setLoadingAccounts(false);
     }
@@ -545,9 +576,9 @@ export default function EmailPage() {
         .select("*")
         .order("email_date", { ascending: false });
       if (error) throw error;
-      setAttachments(data || []);
+      setAttachments((data || []) as EmailAttachment[]);
     } catch {
-      toast.error("Грешка при зареждане на прикачените файлове");
+      toast.error(t.emailPage.toastLoadAttachmentsError);
     } finally {
       setLoadingAttachments(false);
     }
@@ -576,15 +607,15 @@ export default function EmailPage() {
       });
       if (!res.ok) {
         const err = await res.json();
-        toast.error(err.error || "Грешка при добавяне");
+        toast.error(err.error || t.emailPage.toastAccountAddError);
         return;
       }
-      toast.success("Имейл акаунтът е добавен успешно");
+      toast.success(t.emailPage.toastAccountAdded);
       setDialogOpen(false);
       reset();
       loadAccounts();
     } catch {
-      toast.error("Грешка при добавяне на акаунта");
+      toast.error(t.emailPage.toastAccountAddError);
     }
   };
 
@@ -593,7 +624,7 @@ export default function EmailPage() {
     const provider = PROVIDERS[selectedProvider];
     const needsManualHost = selectedProvider === "other" || selectedProvider === "thunderbird";
     const host = needsManualHost ? wizardHost : provider.imap_host;
-    if (!host) { toast.error("Въведете адреса на сървъра"); return; }
+    if (!host) { toast.error(t.emailPage.toastEnterServer); return; }
 
     setWizardSaving(true);
     try {
@@ -601,7 +632,7 @@ export default function EmailPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          display_name: needsManualHost ? wizardEmail : `${provider.label} (${wizardEmail})`,
+          display_name: needsManualHost ? wizardEmail : `${selectedProvider === "gmail" ? "Gmail" : selectedProvider === "mail_bg" ? "Mail.bg" : selectedProvider === "outlook" ? "Outlook" : "Yahoo"} (${wizardEmail})`,
           email_address: wizardEmail,
           imap_host: host,
           imap_port: needsManualHost ? wizardPort : provider.imap_port,
@@ -612,15 +643,15 @@ export default function EmailPage() {
       });
       if (!res.ok) {
         const err = await res.json();
-        toast.error(err.error || "Грешка при добавяне");
+        toast.error(err.error || t.emailPage.toastConnectError);
         return;
       }
-      toast.success("Имейл акаунтът е свързан успешно!");
+      toast.success(t.emailPage.toastAccountConnected);
       setDialogOpen(false);
       resetWizard();
       loadAccounts();
     } catch {
-      toast.error("Грешка при свързване");
+      toast.error(t.emailPage.toastConnectError);
     } finally {
       setWizardSaving(false);
     }
@@ -630,11 +661,11 @@ export default function EmailPage() {
     setDeletingId(id);
     try {
       const res = await fetch(`/api/email/accounts?id=${id}`, { method: "DELETE" });
-      if (!res.ok) { toast.error("Грешка при изтриване"); return; }
-      toast.success("Акаунтът е изтрит");
+      if (!res.ok) { toast.error(t.emailPage.toastDeleteError); return; }
+      toast.success(t.emailPage.toastAccountDeleted);
       setAccounts((prev) => prev.filter((a) => a.id !== id));
     } catch {
-      toast.error("Грешка при изтриване");
+      toast.error(t.emailPage.toastDeleteError);
     } finally {
       setDeletingId(null);
     }
@@ -649,32 +680,24 @@ export default function EmailPage() {
         body: JSON.stringify({ force }),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error || "Грешка при синхронизация"); return; }
+      if (!res.ok) { toast.error(data.error || t.emailPage.toastSyncError); return; }
       if (data.newAttachments > 0) {
-        toast.success(`Намерени ${data.newAttachments} нови прикачени файла`);
+        toast.success(`${data.newAttachments} ${t.emailPage.toastNewAttachments}`);
         loadAttachments();
         loadAccounts();
       } else {
-        toast.info("Няма нови прикачени файлове");
+        toast.info(t.emailPage.toastNoNewAttachments);
       }
       if (data.errors?.length > 0) data.errors.forEach((e: string) => toast.error(e));
     } catch {
-      toast.error("Грешка при синхронизация");
+      toast.error(t.emailPage.toastSyncError);
     } finally {
       setSyncing(false);
     }
   };
 
-  const handleDownload = async (attachment: EmailAttachment) => {
-    try {
-      const { data, error } = await supabase.storage
-        .from("email-attachments")
-        .createSignedUrl(attachment.storage_path, 60);
-      if (error || !data?.signedUrl) { toast.error("Грешка при генериране на линк"); return; }
-      window.open(data.signedUrl, "_blank");
-    } catch {
-      toast.error("Грешка при сваляне");
-    }
+  const handleDownload = (attachment: EmailAttachment) => {
+    window.open(`/api/email/download-attachment?id=${attachment.id}`, "_blank");
   };
 
   const imapSecure = watch("imap_secure");
@@ -684,9 +707,9 @@ export default function EmailPage() {
       <div className="flex items-center gap-3">
         <Inbox className="h-8 w-8 text-violet-400" />
         <div>
-          <h1 className="text-2xl font-bold">Имейли</h1>
+          <h1 className="text-2xl font-bold">{t.emailPage.title}</h1>
           <p className="text-sm text-muted-foreground">
-            Автоматична синхронизация веднъж дневно · Фактури организирани по контрагент и месец
+            {t.emailPage.subtitle}
           </p>
         </div>
       </div>
@@ -695,11 +718,11 @@ export default function EmailPage() {
         <TabsList>
           <TabsTrigger value="attachments" className="gap-2">
             <Paperclip className="h-4 w-4" />
-            Фактури от имейли
+            {t.emailPage.invoicesTab}
           </TabsTrigger>
           <TabsTrigger value="accounts" className="gap-2">
             <Mail className="h-4 w-4" />
-            Акаунти
+            {t.emailPage.accountsTab}
           </TabsTrigger>
         </TabsList>
 
@@ -707,7 +730,7 @@ export default function EmailPage() {
         <TabsContent value="attachments" className="space-y-4 mt-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              {attachments.length > 0 && `${attachments.length} файла от ${Object.keys(groupAttachments(attachments)).length} контрагента`}
+              {attachments.length > 0 && `${attachments.length} ${t.emailPage.fileCounter} ${Object.keys(groupAttachments(attachments)).length}`}
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -721,21 +744,21 @@ export default function EmailPage() {
                 ) : (
                   <RefreshCw className="h-4 w-4 mr-2" />
                 )}
-                {syncing ? "Синхронизира..." : "Провери сега"}
+                {syncing ? t.common.syncing : t.common.checkNow}
               </Button>
               <Button
                 onClick={() => handleSync(true)}
                 disabled={syncing || accounts.length === 0}
                 variant="outline"
                 size="sm"
-                title="Сканира последните 30 дни наново"
+                title={t.emailPage.fullRescanTooltip}
               >
                 {syncing ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
                   <RefreshCw className="h-4 w-4 mr-2" />
                 )}
-                Пълно сканиране
+                {t.emailPage.fullRescan}
               </Button>
             </div>
           </div>
@@ -759,7 +782,7 @@ export default function EmailPage() {
           <div className="flex justify-end">
             <Button onClick={() => setDialogOpen(true)} className="bg-violet-600 hover:bg-violet-700">
               <Plus className="h-4 w-4 mr-2" />
-              Добави акаунт
+              {t.emailPage.addAccount}
             </Button>
           </div>
 
@@ -771,7 +794,7 @@ export default function EmailPage() {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                 <Mail className="h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Няма добавени имейл акаунти</p>
+                <p className="text-muted-foreground">{t.emailPage.noAccounts}</p>
               </CardContent>
             </Card>
           ) : (
@@ -803,10 +826,10 @@ export default function EmailPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0 text-sm text-muted-foreground">
-                    Последна синхронизация:{" "}
-                    {account.last_synced_at ? formatDate(account.last_synced_at) : "Никога"}
+                    {t.emailPage.lastSync}{" "}
+                    {account.last_synced_at ? formatDateWithLocale(account.last_synced_at, locale) : t.common.never}
                     {" · "}
-                    <span className="text-xs">Автоматична синхронизация: всеки ден в 06:00</span>
+                    <span className="text-xs">{t.emailPage.autoSync}</span>
                   </CardContent>
                 </Card>
               ))}
@@ -819,35 +842,46 @@ export default function EmailPage() {
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetWizard(); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Свържи имейл акаунт</DialogTitle>
+            <DialogTitle>{t.emailPage.connectTitle}</DialogTitle>
             <DialogDescription>
-              {wizardStep === 1 ? "Стъпка 1 от 2 — Избери доставчик" : "Стъпка 2 от 2 — Въведи данните си"}
+              {wizardStep === 1 ? t.emailPage.step1of2 : t.emailPage.step2of2}
             </DialogDescription>
           </DialogHeader>
 
           {/* Step 1: Provider selection */}
           {wizardStep === 1 && (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">Изберете вашия имейл доставчик:</p>
+              <p className="text-sm text-muted-foreground">{t.emailPage.chooseProvider}</p>
               <div className="grid grid-cols-2 gap-3">
-                {(Object.entries(PROVIDERS) as [ProviderId, typeof PROVIDERS[ProviderId]][]).map(([id, p]) => (
-                  <button
-                    key={id}
-                    onClick={() => {
-                      setSelectedProvider(id);
-                      if (id === "thunderbird") { setWizardPort(143); setWizardSecure(false); }
-                      else if (id === "other")  { setWizardPort(993); setWizardSecure(true);  }
-                      setWizardStep(2);
-                    }}
-                    className="flex flex-col gap-1 rounded-lg border border-border px-4 py-3 text-left hover:border-violet-500 hover:bg-violet-500/5 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-violet-400 shrink-0" />
-                      <span className="font-semibold text-sm">{p.label}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground leading-tight">{p.description}</span>
-                  </button>
-                ))}
+                {(Object.keys(PROVIDERS) as ProviderId[]).map((id) => {
+                  const providerLabels: Record<ProviderId, { label: string; desc: string }> = {
+                    gmail: { label: t.emailPage.gmailLabel, desc: t.emailPage.gmailDesc },
+                    mail_bg: { label: t.emailPage.mailbgLabel, desc: t.emailPage.mailbgDesc },
+                    outlook: { label: t.emailPage.outlookLabel, desc: t.emailPage.outlookDesc },
+                    yahoo: { label: t.emailPage.yahooLabel, desc: t.emailPage.yahooDesc },
+                    thunderbird: { label: t.emailPage.thunderbirdLabel, desc: t.emailPage.thunderbirdDesc },
+                    other: { label: t.emailPage.otherLabel, desc: t.emailPage.otherDesc },
+                  };
+                  const pl = providerLabels[id];
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => {
+                        setSelectedProvider(id);
+                        if (id === "thunderbird") { setWizardPort(143); setWizardSecure(false); }
+                        else if (id === "other")  { setWizardPort(993); setWizardSecure(true);  }
+                        setWizardStep(2);
+                      }}
+                      className="flex flex-col gap-1 rounded-lg border border-border px-4 py-3 text-left hover:border-violet-500 hover:bg-violet-500/5 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-violet-400 shrink-0" />
+                        <span className="font-semibold text-sm">{pl.label}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground leading-tight">{pl.desc}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -859,78 +893,53 @@ export default function EmailPage() {
               {/* Gmail — App Password guide */}
               {selectedProvider === "gmail" && (
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-1.5">
-                  <p className="text-sm font-semibold text-amber-400">⚠️ Gmail изисква специална парола</p>
-                  <p className="text-xs text-muted-foreground">Обичайната ви парола няма да работи. Трябва да създадете „App Password":</p>
-                  <ol className="text-xs text-muted-foreground space-y-0.5 list-decimal list-inside">
-                    <li>Отворете <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="text-violet-400 underline">myaccount.google.com/apppasswords</a></li>
-                    <li>В полето напишете „TravelInvoices" → натиснете „Създаване"</li>
-                    <li>Копирайте показаната парола (16 символа) и я поставете по-долу</li>
-                  </ol>
+                  <p className="text-sm font-semibold text-amber-400">{t.emailPage.gmailWarning}</p>
+                  <p className="text-xs text-muted-foreground">{t.emailPage.gmailPasswordHint}</p>
                 </div>
               )}
 
-              {/* Mail.bg */}
               {selectedProvider === "mail_bg" && (
                 <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-3">
-                  <p className="text-xs text-muted-foreground">
-                    Въведете обичайната си парола за Mail.bg. Ако не работи — влезте в Mail.bg → <strong>Настройки → Сигурност</strong> и активирайте „Достъп за приложения".
-                  </p>
+                  <p className="text-xs text-muted-foreground">{t.emailPage.mailbgInfo}</p>
                 </div>
               )}
 
-              {/* Outlook */}
               {selectedProvider === "outlook" && (
                 <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-3">
-                  <p className="text-xs text-muted-foreground">
-                    Въведете паролата за вашия Microsoft акаунт. Ако имате включена двуфакторна автентикация, трябва да създадете App Password от <strong>account.microsoft.com → Сигурност → App passwords</strong>.
-                  </p>
+                  <p className="text-xs text-muted-foreground">{t.emailPage.outlookInfo}</p>
                 </div>
               )}
 
-              {/* Yahoo */}
               {selectedProvider === "yahoo" && (
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-1.5">
-                  <p className="text-sm font-semibold text-amber-400">⚠️ Yahoo изисква специална парола</p>
-                  <ol className="text-xs text-muted-foreground space-y-0.5 list-decimal list-inside">
-                    <li>Влезте в Yahoo → <strong>Акаунт → Сигурност</strong></li>
-                    <li>Изберете „Генерирай парола за приложение"</li>
-                    <li>Копирайте генерираната парола и я поставете по-долу</li>
-                  </ol>
+                  <p className="text-sm font-semibold text-amber-400">{t.emailPage.yahooWarning}</p>
                 </div>
               )}
 
-              {/* Thunderbird / Служебна поща */}
               {selectedProvider === "thunderbird" && (
                 <div className="rounded-lg border border-violet-500/30 bg-violet-500/5 p-3 space-y-1.5">
-                  <p className="text-sm font-semibold text-violet-400">📋 Намерете данните в Thunderbird</p>
-                  <p className="text-xs text-muted-foreground">Отворете Thunderbird и следвайте:</p>
-                  <ol className="text-xs text-muted-foreground space-y-0.5 list-decimal list-inside">
-                    <li>Меню → <strong>Инструменти → Настройки на акаунта</strong></li>
-                    <li>Изберете вашия акаунт → <strong>Настройки на сървъра</strong></li>
-                    <li>Копирайте стойността от полето <strong>„Сървър"</strong> по-долу</li>
-                    <li>Паролата е същата, с която влизате в пощата</li>
-                  </ol>
+                  <p className="text-sm font-semibold text-violet-400">{t.emailPage.thunderbirdGuide}</p>
                 </div>
               )}
 
               {/* Email field */}
               <div className="space-y-1.5">
-                <Label htmlFor="w-email">Имейл адрес</Label>
+                <Label htmlFor="w-email">{t.emailPage.emailAddress}</Label>
                 <Input
                   id="w-email"
                   type="email"
-                  placeholder="вашия@имейл.com"
+                  placeholder={t.emailPage.emailPlaceholder}
                   value={wizardEmail}
                   onChange={(e) => setWizardEmail(e.target.value)}
                   autoFocus
                 />
-                <p className="text-xs text-muted-foreground">Имейлът, от който получавате фактури</p>
+                <p className="text-xs text-muted-foreground">{t.emailPage.emailHint}</p>
               </div>
 
               {/* Password field */}
               <div className="space-y-1.5">
                 <Label htmlFor="w-password">
-                  {selectedProvider === "gmail" || selectedProvider === "yahoo" ? "App Password (специална парола)" : "Парола"}
+                  {selectedProvider === "gmail" || selectedProvider === "yahoo" ? t.emailPage.appPassword : t.emailPage.regularPassword}
                 </Label>
                 <div className="relative">
                   <Input
@@ -960,7 +969,7 @@ export default function EmailPage() {
               {(selectedProvider === "thunderbird" || selectedProvider === "other") && (
                 <div className="space-y-3">
                   <div className="space-y-1.5">
-                    <Label htmlFor="w-host">Адрес на сървъра (IMAP хост)</Label>
+                    <Label htmlFor="w-host">{t.emailPage.serverAddress}</Label>
                     <Input
                       id="w-host"
                       placeholder={selectedProvider === "thunderbird" ? "напр. mail.firmata.com" : "imap.example.com"}
@@ -968,22 +977,22 @@ export default function EmailPage() {
                       onChange={(e) => setWizardHost(e.target.value)}
                     />
                     {selectedProvider === "thunderbird" && (
-                      <p className="text-xs text-muted-foreground">Копирайте от Thunderbird → Настройки на сървъра → поле „Сървър"</p>
+                      <p className="text-xs text-muted-foreground">{t.emailPage.seeInThunderbird}</p>
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label htmlFor="w-port">Порт</Label>
+                      <Label htmlFor="w-port">{t.emailPage.port}</Label>
                       <Input
                         id="w-port"
                         type="number"
                         value={wizardPort}
                         onChange={(e) => setWizardPort(Number(e.target.value))}
                       />
-                      <p className="text-xs text-muted-foreground">143 или 993</p>
+                      <p className="text-xs text-muted-foreground">{t.emailPage.portHint}</p>
                     </div>
                     <div className="space-y-1.5">
-                      <Label>Тип връзка</Label>
+                      <Label>{t.emailPage.connectionType}</Label>
                       <Select
                         value={wizardSecure ? "ssl" : "starttls"}
                         onValueChange={(v) => {
@@ -996,11 +1005,11 @@ export default function EmailPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="starttls">STARTTLS (порт 143)</SelectItem>
-                          <SelectItem value="ssl">SSL/TLS (порт 993)</SelectItem>
+                          <SelectItem value="starttls">{t.emailPage.starttls}</SelectItem>
+                          <SelectItem value="ssl">{t.emailPage.ssltls}</SelectItem>
                         </SelectContent>
                       </Select>
-                      <p className="text-xs text-muted-foreground">Вижте в Thunderbird</p>
+                      <p className="text-xs text-muted-foreground">{t.emailPage.seeInThunderbird}</p>
                     </div>
                   </div>
                 </div>
@@ -1014,7 +1023,7 @@ export default function EmailPage() {
                   className="bg-violet-600 hover:bg-violet-700"
                 >
                   {wizardSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Свържи акаунта
+                  {t.emailPage.connectAccount}
                 </Button>
               </DialogFooter>
             </div>

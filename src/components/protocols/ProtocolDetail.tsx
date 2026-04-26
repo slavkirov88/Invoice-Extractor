@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import type { Protocol, Invoice } from "@/types";
 import Link from "next/link";
 import { Plus, Pencil, X, Files } from "lucide-react";
+import { useLocale } from "@/lib/i18n/context";
 
 interface ProtocolWithInvoices extends Protocol {
   invoices: Invoice[];
@@ -63,6 +64,9 @@ export function ProtocolDetail({
   const sectionB = protocol.invoices
     .filter((i) => i.section === "B")
     .sort((a, b) => a.sequence_number - b.sequence_number);
+  const sectionCommission = protocol.invoices
+    .filter((i) => i.section === "commission")
+    .sort((a, b) => a.sequence_number - b.sequence_number);
 
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -73,7 +77,7 @@ export function ProtocolDetail({
     creation_date: protocol.creation_date,
     tax_event_date: protocol.tax_event_date,
     reference_number: protocol.reference_number ?? "",
-    protocol_type: (protocol.protocol_type as "eu" | "non_eu" | "mixed") ?? "eu",
+    protocol_type: (protocol.protocol_type as "eu" | "non_eu" | "mixed" | "commission") ?? "eu",
     linked_protocol_number: protocol.linked_protocol_number?.toString() ?? "",
     compiled_by: protocol.compiled_by ?? "",
     approved_by: protocol.approved_by ?? "",
@@ -82,6 +86,7 @@ export function ProtocolDetail({
 
   const [draftsA, setDraftsA] = useState<InvoiceDraft[]>(() => toDrafts(sectionA));
   const [draftsB, setDraftsB] = useState<InvoiceDraft[]>(() => toDrafts(sectionB));
+  const [draftsCommission, setDraftsCommission] = useState<InvoiceDraft[]>(() => toDrafts(sectionCommission));
 
   const headerTaxRate = headerDraft.protocol_type === "non_eu" ? 0 : 20;
 
@@ -93,7 +98,7 @@ export function ProtocolDetail({
       creation_date: protocol.creation_date,
       tax_event_date: protocol.tax_event_date,
       reference_number: protocol.reference_number ?? "",
-      protocol_type: (protocol.protocol_type as "eu" | "non_eu" | "mixed") ?? "eu",
+      protocol_type: (protocol.protocol_type as "eu" | "non_eu" | "mixed" | "commission") ?? "eu",
       linked_protocol_number: protocol.linked_protocol_number?.toString() ?? "",
       compiled_by: protocol.compiled_by ?? "",
       approved_by: protocol.approved_by ?? "",
@@ -101,12 +106,13 @@ export function ProtocolDetail({
     });
     setDraftsA(toDrafts(sectionA));
     setDraftsB(toDrafts(sectionB));
+    setDraftsCommission(toDrafts(sectionCommission));
     setIsEditing(false);
   }
 
   async function handleSaveInvoices(
     drafts: InvoiceDraft[],
-    section: "A" | "B",
+    section: "A" | "B" | "commission",
     userId: string
   ): Promise<boolean> {
     const toDelete = drafts.filter((d) => d._deleted && d.id);
@@ -147,7 +153,7 @@ export function ProtocolDetail({
         issue_date: d.issue_date,
         counterparty_vat_id: d.counterparty_vat_id || null,
         amount: parseFloat(d.amount) || 0,
-        invoice_category: section === "A" ? "income" : "expense",
+        invoice_category: section === "A" ? "income" : section === "commission" ? "commission" : "expense",
         vat_rate: d.vat_rate ? parseFloat(d.vat_rate) : null,
         user_id: userId,
       });
@@ -157,13 +163,15 @@ export function ProtocolDetail({
     return true;
   }
 
+  const { t } = useLocale();
+
   async function handleSave() {
     setSaving(true);
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      toast.error("Не сте влезли в системата");
+      toast.error(t.protocols.toastNotLoggedIn);
       setSaving(false);
       return;
     }
@@ -189,7 +197,7 @@ export function ProtocolDetail({
       .eq("id", protocol.id);
 
     if (protocolError) {
-      toast.error("Грешка при запис на протокола: " + protocolError.message);
+      toast.error(t.protocols.toastSaveError + ": " + protocolError.message);
       setSaving(false);
       return;
     }
@@ -197,14 +205,17 @@ export function ProtocolDetail({
     // 2. Update invoices
     const okA = await handleSaveInvoices(draftsA, "A", user.id);
     const okB = await handleSaveInvoices(draftsB, "B", user.id);
+    const okC = protocol.protocol_type === "commission"
+      ? await handleSaveInvoices(draftsCommission, "commission", user.id)
+      : true;
 
-    if (!okA || !okB) {
-      toast.error("Грешка при запис на фактури");
+    if (!okA || !okB || !okC) {
+      toast.error(t.protocols.toastSaveInvoicesError);
       setSaving(false);
       return;
     }
 
-    toast.success("Протоколът е обновен успешно");
+    toast.success(t.protocols.toastUpdated);
     setSaving(false);
     setIsEditing(false);
     router.refresh();
@@ -217,7 +228,7 @@ export function ProtocolDetail({
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold">
-              Протокол №{protocol.protocol_number}
+              {t.protocols.protocolNumber}{protocol.protocol_number}
             </h1>
             <Badge
               variant={
@@ -229,14 +240,14 @@ export function ProtocolDetail({
               }
             >
               {protocol.protocol_type === "eu"
-                ? "в ЕС"
+                ? t.protocols.typeEU
                 : protocol.protocol_type === "non_eu"
-                ? "извън ЕС"
+                ? t.protocols.typeNonEU
                 : protocol.protocol_type === "mixed"
-                ? "Смесен"
+                ? t.protocols.typeMixed
                 : protocol.protocol_type === "commission"
-                ? "Комисионен"
-                : "Стандартен"}
+                ? t.protocols.typeCommission
+                : t.protocols.typeStandard}
             </Badge>
           </div>
           {!isEditing && (
@@ -251,18 +262,18 @@ export function ProtocolDetail({
             <>
               <Button variant="outline" onClick={() => setIsEditing(true)}>
                 <Pencil className="mr-2 h-4 w-4" />
-                Редактирай
+                {t.common.edit}
               </Button>
               <Button asChild variant="outline">
                 <Link href={`/invoices/bulk?protocol=${protocol.id}`}>
                   <Files className="mr-2 h-4 w-4" />
-                  Добави фактури
+                  {t.protocols.addInvoices}
                 </Link>
               </Button>
               <Button asChild variant="outline">
                 <Link href={`/invoices/add?protocol=${protocol.id}`}>
                   <Plus className="mr-2 h-4 w-4" />
-                  Добави фактура
+                  {t.protocols.addInvoice}
                 </Link>
               </Button>
               <ExcelExport protocol={protocol} />
@@ -272,10 +283,10 @@ export function ProtocolDetail({
             <>
               <Button variant="outline" onClick={handleCancel} disabled={saving}>
                 <X className="mr-2 h-4 w-4" />
-                Откажи
+                {t.common.cancel}
               </Button>
               <Button onClick={handleSave} disabled={saving}>
-                {saving ? "Запазване..." : "Запази промените"}
+                {saving ? t.common.saving : t.common.saveChanges}
               </Button>
             </>
           )}
@@ -287,34 +298,34 @@ export function ProtocolDetail({
         <Card>
           <CardContent className="grid gap-4 pt-6 md:grid-cols-4">
             <div>
-              <p className="text-sm text-muted-foreground">Дата на съставяне</p>
+              <p className="text-sm text-muted-foreground">{t.protocols.creationDate}</p>
               <p className="font-medium">
                 {format(new Date(protocol.creation_date), "dd.MM.yyyy")}
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">
-                Дата на данъчно събитие
+                {t.protocols.taxEventDate}
               </p>
               <p className="font-medium">
                 {format(new Date(protocol.tax_event_date), "dd.MM.yyyy")}
               </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Референция №</p>
+              <p className="text-sm text-muted-foreground">{t.protocols.referenceNumber}</p>
               <p className="font-medium">
                 {protocol.reference_number || "-"}
               </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Дестинация</p>
+              <p className="text-sm text-muted-foreground">{t.protocols.destination}</p>
               <p className="font-medium">
                 {protocol.destination || "-"}
               </p>
             </div>
             {protocol.linked_protocol_number && (
               <div>
-                <p className="text-sm text-muted-foreground">Към протокол №</p>
+                <p className="text-sm text-muted-foreground">{t.protocols.linkedProtocol}</p>
                 <p className="font-medium">{protocol.linked_protocol_number}</p>
               </div>
             )}
@@ -323,12 +334,12 @@ export function ProtocolDetail({
       ) : (
         <Card className="border-violet-500/30">
           <CardHeader>
-            <CardTitle>Данни на протокола</CardTitle>
+            <CardTitle>{t.protocols.protocolData}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label>Име на доставчика</Label>
+                <Label>{t.protocols.supplierName}</Label>
                 <Input
                   value={headerDraft.supplier_name}
                   onChange={(e) =>
@@ -338,7 +349,7 @@ export function ProtocolDetail({
                 />
               </div>
               <div className="space-y-2">
-                <Label>ЕИК / ДДС номер</Label>
+                <Label>{t.protocols.vatId}</Label>
                 <Input
                   value={headerDraft.supplier_vat_id}
                   onChange={(e) =>
@@ -351,7 +362,7 @@ export function ProtocolDetail({
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label>Дата на съставяне</Label>
+                <Label>{t.protocols.creationDate}</Label>
                 <Input
                   type="date"
                   value={headerDraft.creation_date}
@@ -362,7 +373,7 @@ export function ProtocolDetail({
                 />
               </div>
               <div className="space-y-2">
-                <Label>Дата на данъчно събитие</Label>
+                <Label>{t.protocols.taxEventDate}</Label>
                 <Input
                   type="date"
                   value={headerDraft.tax_event_date}
@@ -376,10 +387,10 @@ export function ProtocolDetail({
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label>Тип протокол</Label>
+                <Label>{t.protocols.protocolType}</Label>
                 <Select
                   value={headerDraft.protocol_type}
-                  onValueChange={(value: "eu" | "non_eu" | "mixed") =>
+                  onValueChange={(value: "eu" | "non_eu" | "mixed" | "commission") =>
                     setHeaderDraft({ ...headerDraft, protocol_type: value })
                   }
                 >
@@ -387,14 +398,15 @@ export function ProtocolDetail({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="eu">в ЕС (20%)</SelectItem>
-                    <SelectItem value="non_eu">извън ЕС (0%)</SelectItem>
-                    <SelectItem value="mixed">Смесен</SelectItem>
+                    <SelectItem value="eu">{t.protocols.typeEURate}</SelectItem>
+                    <SelectItem value="non_eu">{t.protocols.typeNonEURate}</SelectItem>
+                    <SelectItem value="mixed">{t.protocols.typeMixedOption}</SelectItem>
+                    <SelectItem value="commission">{t.protocols.typeCommissionOption}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Данъчна ставка (%)</Label>
+                <Label>{t.protocols.taxRate}</Label>
                 <Input
                   value={headerDraft.protocol_type === "mixed" ? "20 / 0" : headerTaxRate}
                   disabled
@@ -404,19 +416,19 @@ export function ProtocolDetail({
             </div>
 
             <div className="space-y-2">
-              <Label>Дестинация (незадължително)</Label>
+              <Label>{t.protocols.destination}</Label>
               <Input
                 value={headerDraft.destination}
                 onChange={(e) =>
                   setHeaderDraft({ ...headerDraft, destination: e.target.value })
                 }
-                placeholder="напр. Италия, Гърция"
+                placeholder={t.protocols.destinationPlaceholder}
               />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label>Референция № (незадължително)</Label>
+                <Label>{t.protocols.referenceNumber}</Label>
                 <Input
                   value={headerDraft.reference_number}
                   onChange={(e) =>
@@ -425,7 +437,7 @@ export function ProtocolDetail({
                 />
               </div>
               <div className="space-y-2">
-                <Label>Към протокол № (коригиращ, незадължително)</Label>
+                <Label>{t.protocols.linkedProtocol}</Label>
                 <Input
                   type="number"
                   value={headerDraft.linked_protocol_number}
@@ -438,7 +450,7 @@ export function ProtocolDetail({
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label>Съставил</Label>
+                <Label>{t.protocols.createdBy}</Label>
                 <Input
                   value={headerDraft.compiled_by}
                   onChange={(e) =>
@@ -447,7 +459,7 @@ export function ProtocolDetail({
                 />
               </div>
               <div className="space-y-2">
-                <Label>Одобрил</Label>
+                <Label>{t.protocols.approvedBy}</Label>
                 <Input
                   value={headerDraft.approved_by}
                   onChange={(e) =>
@@ -461,7 +473,7 @@ export function ProtocolDetail({
       )}
 
       <EditableInvoiceTable
-        title="Раздел А. Получени суми по туристическата услуга"
+        title={t.protocols.sectionA}
         section="A"
         invoices={sectionA}
         isEditing={isEditing}
@@ -471,7 +483,7 @@ export function ProtocolDetail({
       />
 
       <EditableInvoiceTable
-        title="Раздел Б. Платени суми по туристическата услуга"
+        title={t.protocols.sectionB}
         section="B"
         invoices={sectionB}
         isEditing={isEditing}
@@ -479,6 +491,18 @@ export function ProtocolDetail({
         drafts={draftsB}
         onDraftsChange={setDraftsB}
       />
+
+      {protocol.protocol_type === "commission" && (
+        <EditableInvoiceTable
+          title={t.protocols.commission}
+          section="commission"
+          invoices={sectionCommission}
+          isEditing={isEditing}
+          showVatRate={false}
+          drafts={draftsCommission}
+          onDraftsChange={setDraftsCommission}
+        />
+      )}
 
       <VatCalculation
         invoices={protocol.invoices}

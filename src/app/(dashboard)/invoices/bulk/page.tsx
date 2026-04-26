@@ -35,6 +35,7 @@ import {
 import Link from "next/link";
 import type { Protocol } from "@/types";
 import type { UserCredits } from "@/lib/credits";
+import { useLocale } from "@/lib/i18n/context";
 
 type FileStatus = "pending" | "scanning" | "saved" | "error";
 
@@ -54,6 +55,7 @@ export default function BulkInvoicePage() {
 }
 
 function BulkInvoiceContent() {
+  const { t } = useLocale();
   const searchParams = useSearchParams();
   const preselectedProtocol = searchParams.get("protocol");
 
@@ -61,7 +63,7 @@ function BulkInvoiceContent() {
   const [selectedProtocolId, setSelectedProtocolId] = useState(
     preselectedProtocol || ""
   );
-  const [invoiceType, setInvoiceType] = useState<"income" | "expense">(
+  const [invoiceType, setInvoiceType] = useState<"income" | "expense" | "commission">(
     "income"
   );
   const [invoiceVatRate, setInvoiceVatRate] = useState<20 | 0>(20);
@@ -98,9 +100,7 @@ function BulkInvoiceContent() {
       if (processing || done) return;
       const pdfs = acceptedFiles.filter((f) => f.type === "application/pdf");
       if (pdfs.length < acceptedFiles.length) {
-        toast.warning(
-          "Само PDF файлове са поддържани. Останалите са пропуснати."
-        );
+        toast.warning(t.invoices.toastPdfOnly);
       }
       setFiles((prev) => [
         ...prev,
@@ -132,12 +132,12 @@ function BulkInvoiceContent() {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      toast.error("Не сте влезли в системата");
+      toast.error(t.common.notLoggedIn);
       setProcessing(false);
       return;
     }
 
-    const section = invoiceType === "income" ? "A" : "B";
+    const section = invoiceType === "income" ? "A" : invoiceType === "commission" ? "commission" : "B";
     const vatRate =
       selectedProtocol?.protocol_type === "mixed" ? invoiceVatRate : null;
 
@@ -180,7 +180,7 @@ function BulkInvoiceContent() {
           protocol_id: selectedProtocolId,
           section,
           sequence_number: nextSeq,
-          document_type: "Фактура",
+          document_type: t.common.invoice,
           document_number: String(data.documentNumber || ""),
           issue_date: String(
             data.issueDate || new Date().toISOString().split("T")[0]
@@ -202,7 +202,7 @@ function BulkInvoiceContent() {
         );
       } catch (err) {
         const msg =
-          err instanceof Error ? err.message : "Неизвестна грешка";
+          err instanceof Error ? err.message : t.invoices.toastUnknownError;
         setFiles((prev) =>
           prev.map((f, idx) =>
             idx === i ? { ...f, status: "error", error: msg } : f
@@ -215,11 +215,9 @@ function BulkInvoiceContent() {
     setDone(true);
 
     if (savedCount === files.length) {
-      toast.success(`${savedCount} фактури добавени успешно`);
+      toast.success(`${savedCount} ${t.invoices.toastBulkAdded}`);
     } else {
-      toast.warning(
-        `${savedCount} от ${files.length} фактури добавени. Проверете грешките.`
-      );
+      toast.warning(`${savedCount}/${files.length} ${t.invoices.toastBulkPartial}`);
     }
   }
 
@@ -245,9 +243,9 @@ function BulkInvoiceContent() {
                 <Zap className="h-8 w-8 text-violet-400" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold">Започнете безплатен тест</h3>
+                <h3 className="text-lg font-semibold">{t.invoices.upsellTitle}</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  За да добавяте фактури, започнете 14-дневен безплатен тестов период.
+                  {t.invoices.upsellText}
                 </p>
               </div>
               <Link
@@ -255,11 +253,11 @@ function BulkInvoiceContent() {
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-8 py-3 text-sm font-medium text-white hover:bg-violet-700 transition-colors"
               >
                 <Zap className="h-4 w-4" />
-                Започни 14-дневен безплатен тест
+                {t.invoices.upsellCTA}
               </Link>
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" />
-                Съществуващите фактури остават достъпни
+                {t.invoices.upsellNote}
               </p>
             </div>
           </CardContent>
@@ -274,42 +272,41 @@ function BulkInvoiceContent() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Добави фактури (bulk)</h1>
+        <h1 className="text-3xl font-bold">{t.invoices.bulkTitle}</h1>
         <p className="text-muted-foreground">
-          Качете няколко PDF фактури наведнъж — AI ще ги сканира и запише
-          автоматично
+          {t.invoices.bulkSubtitle}
         </p>
       </div>
 
       {/* Settings */}
       <Card>
         <CardHeader>
-          <CardTitle>Настройки</CardTitle>
+          <CardTitle>{t.invoices.settingsTitle}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Протокол</Label>
+            <Label>{t.invoices.protocol}</Label>
             <Select
               value={selectedProtocolId}
               onValueChange={setSelectedProtocolId}
               disabled={processing}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Изберете протокол" />
+                <SelectValue placeholder={t.invoices.selectProtocol} />
               </SelectTrigger>
               <SelectContent>
                 {protocols.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
                     №{p.protocol_number} — {p.supplier_name} (
                     {p.protocol_type === "eu"
-                      ? "в ЕС"
+                      ? t.protocols.typeEU
                       : p.protocol_type === "non_eu"
-                      ? "извън ЕС"
+                      ? t.protocols.typeNonEU
                       : p.protocol_type === "mixed"
-                      ? "Смесен"
+                      ? t.protocols.typeMixed
                       : p.protocol_type === "commission"
-                      ? "Комисионен"
-                      : "Стандартен"}
+                      ? t.protocols.typeCommission
+                      : t.protocols.typeStandard}
                     )
                   </SelectItem>
                 ))}
@@ -318,29 +315,28 @@ function BulkInvoiceContent() {
           </div>
 
           <div className="space-y-2">
-            <Label>Тип фактура</Label>
+            <Label>{t.invoices.invoiceType}</Label>
             <Select
               value={invoiceType}
-              onValueChange={(v: "income" | "expense") => setInvoiceType(v)}
+              onValueChange={(v: "income" | "expense" | "commission") => setInvoiceType(v)}
               disabled={processing}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="income">
-                  Приходна (Раздел А — получени суми)
-                </SelectItem>
-                <SelectItem value="expense">
-                  Разходна (Раздел Б — платени суми)
-                </SelectItem>
+                <SelectItem value="income">{t.invoices.income}</SelectItem>
+                <SelectItem value="expense">{t.invoices.expense}</SelectItem>
+                {selectedProtocol?.protocol_type === "commission" && (
+                  <SelectItem value="commission">{t.invoices.commissionType}</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
 
           {selectedProtocol?.protocol_type === "mixed" && (
             <div className="space-y-2">
-              <Label>ДДС ставка</Label>
+              <Label>{t.invoices.vatRate}</Label>
               <Select
                 value={String(invoiceVatRate)}
                 onValueChange={(v) =>
@@ -352,8 +348,8 @@ function BulkInvoiceContent() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="20">в ЕС — 20%</SelectItem>
-                  <SelectItem value="0">извън ЕС — 0%</SelectItem>
+                  <SelectItem value="20">{t.invoices.vatEU}</SelectItem>
+                  <SelectItem value="0">{t.invoices.vatNonEU}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -365,9 +361,9 @@ function BulkInvoiceContent() {
       {!done && (
         <Card>
           <CardHeader>
-            <CardTitle>PDF файлове</CardTitle>
+            <CardTitle>{t.invoices.pdfFiles}</CardTitle>
             <CardDescription>
-              Изберете или плъзнете няколко PDF фактури наведнъж
+              {t.invoices.pdfFilesDescription}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -384,14 +380,14 @@ function BulkInvoiceContent() {
               <input {...getInputProps()} />
               <Upload className="mb-3 h-10 w-10 text-muted-foreground" />
               {isDragActive ? (
-                <p>Пуснете файловете тук...</p>
+                <p>{t.invoices.dragActiveBulk}</p>
               ) : (
                 <>
                   <p className="text-center">
-                    Плъзнете PDF файлове тук или кликнете за избор
+                    {t.invoices.dragIdleBulk}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Можете да изберете много файлове наведнъж
+                    {t.invoices.multiFileHint}
                   </p>
                 </>
               )}
@@ -438,17 +434,17 @@ function BulkInvoiceContent() {
                       )}
                       {item.status === "scanning" && (
                         <Badge variant="secondary" className="text-xs">
-                          Сканиране...
+                          {t.invoices.scanning}
                         </Badge>
                       )}
                       {item.status === "saved" && (
                         <Badge className="text-xs bg-green-500/10 text-green-500 border-green-500/20">
-                          Записана
+                          {t.invoices.saved}
                         </Badge>
                       )}
                       {item.status === "error" && (
                         <Badge variant="destructive" className="text-xs">
-                          Грешка
+                          {t.common.error}
                         </Badge>
                       )}
                     </div>
@@ -466,12 +462,12 @@ function BulkInvoiceContent() {
               {processing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Сканиране...
+                  {t.invoices.scanning}
                 </>
               ) : (
                 <>
                   <Files className="mr-2 h-4 w-4" />
-                  Сканирай и запиши ({files.length} {files.length === 1 ? "файл" : "файла"})
+                  {t.invoices.scanAndSave} ({files.length} {files.length === 1 ? t.common.file : t.common.files})
                 </>
               )}
             </Button>
@@ -485,10 +481,9 @@ function BulkInvoiceContent() {
           <CardContent className="flex flex-col items-center gap-4 py-10">
             <CheckCircle className="h-12 w-12 text-green-500" />
             <div className="text-center">
-              <p className="text-lg font-semibold">Готово!</p>
+              <p className="text-lg font-semibold">{t.invoices.done}</p>
               <p className="text-sm text-muted-foreground">
-                {files.filter((f) => f.status === "saved").length} от{" "}
-                {files.length} фактури добавени
+                {files.filter((f) => f.status === "saved").length} / {files.length} {t.invoices.invoicesAdded}
               </p>
             </div>
             {files.some((f) => f.status === "error") && (
@@ -504,7 +499,7 @@ function BulkInvoiceContent() {
             )}
             <Button asChild className="w-full">
               <Link href={`/protocols/${selectedProtocolId}`}>
-                Виж протокола
+                {t.invoices.viewProtocol}
               </Link>
             </Button>
           </CardContent>

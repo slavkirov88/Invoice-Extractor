@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe/config";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
@@ -22,26 +21,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const origin = request.nextUrl.origin;
+
+    const params = new URLSearchParams({
       mode: "subscription",
-      payment_method_types: ["card"],
-      line_items: [{ price: priceId, quantity: 1 }],
-      subscription_data: {
-        trial_period_days: 14,
-        metadata: { userId: user.id },
-      },
-      customer_email: user.email,
-      metadata: { userId: user.id },
-      success_url: `${request.nextUrl.origin}/overview?session_id={CHECKOUT_SESSION_ID}&success=true`,
-      cancel_url: `${request.nextUrl.origin}/#pricing`,
-      allow_promotion_codes: true,
+      "payment_method_types[]": "card",
+      "line_items[0][price]": priceId.trim(),
+      "line_items[0][quantity]": "1",
+      "subscription_data[trial_period_days]": "14",
+      "subscription_data[trial_settings][end_behavior][missing_payment_method]": "cancel",
+      "subscription_data[metadata][userId]": user.id,
+      payment_method_collection: "if_required",
+      customer_email: user.email!,
+      "metadata[userId]": user.id,
+      success_url: `${origin}/overview?session_id={CHECKOUT_SESSION_ID}&success=true`,
+      cancel_url: `${origin}/#pricing`,
+      allow_promotion_codes: "true",
     });
 
-    return NextResponse.json({ url: session.url });
+    const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: params.toString(),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.error("Stripe API error:", data);
+      return NextResponse.json(
+        { error: "Failed to create checkout session", detail: data?.error?.message },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ url: data.url });
   } catch (error) {
-    console.error("Stripe checkout error:", error);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Stripe checkout error:", message);
     return NextResponse.json(
-      { error: "Failed to create checkout session" },
+      { error: "Failed to create checkout session", detail: message },
       { status: 500 }
     );
   }

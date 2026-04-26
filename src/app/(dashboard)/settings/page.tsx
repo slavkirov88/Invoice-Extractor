@@ -22,12 +22,11 @@ import {
   Loader2,
   ArrowRight,
   CheckCircle2,
-  TrendingUp,
-  TrendingDown,
-  RefreshCw,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { UserCredits } from "@/lib/credits";
+import { useLocale } from "@/lib/i18n/context";
 
 const PROFESSIONAL_PRICE_ID =
   process.env.NEXT_PUBLIC_STRIPE_PROFESSIONAL_PRICE_ID ||
@@ -36,24 +35,24 @@ const BUSINESS_PRICE_ID =
   process.env.NEXT_PUBLIC_STRIPE_BUSINESS_PRICE_ID ||
   "price_1T8NXORt9H8Dfn2rq4rLKxoz";
 
-function formatDate(iso?: string) {
-  if (!iso) return "";
-  return new Date(iso).toLocaleDateString("bg-BG", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
-
 export default function SettingsPage() {
+  const { t, locale } = useLocale();
   const [credits, setCredits] = useState<UserCredits | null>(null);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
-  const [changePlanLoading, setChangePlanLoading] = useState(false);
-  const [cancelLoading, setCancelLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+
+  function formatDate(iso?: string) {
+    if (!iso) return "";
+    return new Date(iso).toLocaleDateString(locale === "bg" ? "bg-BG" : "en-US", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  }
 
   async function loadCredits() {
     const res = await fetch("/api/credits");
@@ -89,54 +88,33 @@ export default function SettingsPage() {
         const { url } = await res.json();
         if (url) window.location.href = url;
       } else {
-        toast.error("Грешка при създаване на сесия. Опитайте отново.");
+        const data = await res.json();
+        toast.error(data.detail || data.error || t.settings.toastCheckoutError);
       }
     } catch {
-      toast.error("Грешка при свързване. Опитайте отново.");
+      toast.error(t.settings.toastNetworkError);
     } finally {
       setCheckoutLoading(null);
     }
   };
 
-  const handleChangePlan = async (priceId: string) => {
-    setChangePlanLoading(true);
+  const handleManageSubscription = async () => {
+    setPortalLoading(true);
     try {
-      const res = await fetch("/api/stripe/change-plan", {
+      const res = await fetch("/api/stripe/portal", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ priceId }),
       });
       if (res.ok) {
-        await loadCredits();
-        toast.success("Планът е обновен успешно.");
+        const { url } = await res.json();
+        if (url) window.location.href = url;
       } else {
-        toast.error("Грешка при смяна на план. Опитайте отново.");
+        const data = await res.json();
+        toast.error(data.detail || data.error || t.settings.toastCheckoutError);
       }
     } catch {
-      toast.error("Грешка при свързване. Опитайте отново.");
+      toast.error(t.settings.toastNetworkError);
     } finally {
-      setChangePlanLoading(false);
-    }
-  };
-
-  const handleCancel = async (cancel: boolean) => {
-    setCancelLoading(true);
-    try {
-      const res = await fetch("/api/stripe/cancel", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cancel }),
-      });
-      if (res.ok) {
-        await loadCredits();
-        toast.success(cancel ? "Абонаментът ще спре в края на периода." : "Абонаментът е реактивиран.");
-      } else {
-        toast.error("Грешка при обновяване на абонамент. Опитайте отново.");
-      }
-    } catch {
-      toast.error("Грешка при свързване. Опитайте отново.");
-    } finally {
-      setCancelLoading(false);
+      setPortalLoading(false);
     }
   };
 
@@ -159,7 +137,6 @@ export default function SettingsPage() {
     credits?.subscriptionStatus === "active" ||
     credits?.subscriptionStatus === "trialing" ||
     credits?.subscriptionStatus === "past_due";
-  const isProfessional = credits?.plan === "professional";
   const isBusiness = credits?.plan === "business";
 
   return (
@@ -167,9 +144,9 @@ export default function SettingsPage() {
       <div className="flex items-center gap-3">
         <Settings className="h-8 w-8 text-violet-400" />
         <div>
-          <h1 className="text-2xl font-bold">Настройки</h1>
+          <h1 className="text-2xl font-bold">{t.settings.title}</h1>
           <p className="text-sm text-muted-foreground">
-            Управление на акаунт и абонамент
+            {t.settings.subtitle}
           </p>
         </div>
       </div>
@@ -179,9 +156,9 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5" />
-            Абонамент
+            {t.settings.subscription}
           </CardTitle>
-          <CardDescription>Текущ план</CardDescription>
+          <CardDescription>{t.settings.currentPlan}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
 
@@ -195,22 +172,22 @@ export default function SettingsPage() {
                     <Zap className="h-5 w-5 text-violet-400" />
                   </div>
                   <div>
-                    <div className="font-semibold">Старт</div>
-                    <div className="text-lg font-bold">20€<span className="text-sm font-normal text-muted-foreground">/мес</span></div>
+                    <div className="font-semibold">{t.settings.starterPlan}</div>
+                    <div className="text-lg font-bold">{t.settings.starterPrice}</div>
                   </div>
                 </div>
                 <ul className="space-y-1.5 text-sm text-muted-foreground">
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                    До 200 фактури/месец
+                    {t.settings.starterFeature1}
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                    До 50 протокола/месец
+                    {t.settings.starterFeature2}
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                    AI извличане от PDF
+                    {t.settings.aiFeature}
                   </li>
                 </ul>
                 <Button
@@ -223,7 +200,7 @@ export default function SettingsPage() {
                   ) : (
                     <ArrowRight className="h-4 w-4 mr-2" />
                   )}
-                  Започни тест
+                  {t.settings.startTrial}
                 </Button>
               </div>
 
@@ -235,24 +212,24 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <div className="font-semibold flex items-center gap-2">
-                      Бизнес
-                      <span className="text-xs bg-violet-500/20 text-violet-300 px-1.5 py-0.5 rounded-full">Популярен</span>
+                      {t.settings.businessPlan}
+                      <span className="text-xs bg-violet-500/20 text-violet-300 px-1.5 py-0.5 rounded-full">{t.settings.popular}</span>
                     </div>
-                    <div className="text-lg font-bold">40€<span className="text-sm font-normal text-muted-foreground">/мес</span></div>
+                    <div className="text-lg font-bold">{t.settings.businessPrice}</div>
                   </div>
                 </div>
                 <ul className="space-y-1.5 text-sm text-muted-foreground">
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                    Неограничени фактури
+                    {t.settings.businessFeature1}
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                    Неограничени протоколи
+                    {t.settings.businessFeature2}
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                    AI извличане от PDF
+                    {t.settings.aiFeature}
                   </li>
                 </ul>
                 <Button
@@ -265,18 +242,18 @@ export default function SettingsPage() {
                   ) : (
                     <ArrowRight className="h-4 w-4 mr-2" />
                   )}
-                  Започни тест
+                  {t.settings.startTrial}
                 </Button>
               </div>
 
               <p className="sm:col-span-2 text-xs text-center text-muted-foreground">
-                14 дни безплатно — без такса до края на пробния период
+                {t.settings.trialNote}
               </p>
             </div>
           )}
 
           {/* State 2: Active / trialing */}
-          {(isActive) && (
+          {isActive && (
             <div className="space-y-4">
               <div className="flex items-center justify-between rounded-lg border border-border p-4">
                 <div className="flex items-center gap-3">
@@ -289,59 +266,32 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <div className="font-medium flex items-center gap-2">
-                      {credits?.planName}
+                      {credits?.plan === "professional" ? t.plans.starter : credits?.plan === "business" ? t.plans.business : t.plans.free}
                       <span className="text-xs bg-green-500/15 text-green-400 px-1.5 py-0.5 rounded-full font-normal">
-                        {credits?.subscriptionStatus === "trialing" ? "Пробен период" : "Активен"}
+                        {credits?.subscriptionStatus === "trialing" ? t.settings.trialStatus : t.settings.activeStatus}
                       </span>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Активен до {formatDate(credits?.currentPeriodEnd)}
+                      {t.settings.activeUntil} {formatDate(credits?.currentPeriodEnd)}
                     </div>
                   </div>
                 </div>
                 <BadgeCheck className="h-6 w-6 text-green-400 shrink-0" />
               </div>
 
-              {/* Upgrade / Downgrade button */}
-              {isProfessional && (
-                <Button
-                  className="w-full bg-violet-600 hover:bg-violet-700"
-                  onClick={() => handleChangePlan(BUSINESS_PRICE_ID)}
-                  disabled={changePlanLoading}
-                >
-                  {changePlanLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <TrendingUp className="h-4 w-4 mr-2" />
-                  )}
-                  ⬆ Upgrade на Бизнес (40€/мес)
-                </Button>
-              )}
-              {isBusiness && (
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => handleChangePlan(PROFESSIONAL_PRICE_ID)}
-                  disabled={changePlanLoading}
-                >
-                  {changePlanLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <TrendingDown className="h-4 w-4 mr-2" />
-                  )}
-                  ⬇ Downgrade на Старт (20€/мес)
-                </Button>
-              )}
-
-              <div className="text-center">
-                <button
-                  onClick={() => handleCancel(true)}
-                  disabled={cancelLoading}
-                  className="text-sm text-red-400 hover:text-red-300 underline underline-offset-2 disabled:opacity-50"
-                >
-                  {cancelLoading ? "Зарежда..." : "Отмени абонамент"}
-                </button>
-              </div>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleManageSubscription}
+                disabled={portalLoading}
+              >
+                {portalLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                )}
+                {t.settings.manageSubscription}
+              </Button>
             </div>
           )}
 
@@ -350,23 +300,24 @@ export default function SettingsPage() {
             <div className="space-y-4">
               <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
                 <div className="font-medium text-amber-400">
-                  Абонаментът спира на {formatDate(credits?.currentPeriodEnd)}
+                  {t.settings.cancelingWarning} {formatDate(credits?.currentPeriodEnd)}
                 </div>
                 <div className="text-sm text-muted-foreground mt-1">
-                  Имате достъп до края на периода. Реактивирайте по всяко време.
+                  {t.settings.cancelingNote}
                 </div>
               </div>
               <Button
-                className="w-full bg-green-600 hover:bg-green-700"
-                onClick={() => handleCancel(false)}
-                disabled={cancelLoading}
+                variant="outline"
+                className="w-full"
+                onClick={handleManageSubscription}
+                disabled={portalLoading}
               >
-                {cancelLoading ? (
+                {portalLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 ) : (
-                  <RefreshCw className="h-4 w-4 mr-2" />
+                  <ExternalLink className="h-4 w-4 mr-2" />
                 )}
-                Реактивирай абонамент
+                {t.settings.manageSubscription}
               </Button>
             </div>
           )}
@@ -378,13 +329,13 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
-            Акаунт
+            {t.settings.account}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between rounded-lg border border-border p-4">
             <div>
-              <div className="text-sm text-muted-foreground">Имейл</div>
+              <div className="text-sm text-muted-foreground">{t.settings.emailLabel}</div>
               <div className="font-medium">{email}</div>
             </div>
           </div>
@@ -394,7 +345,7 @@ export default function SettingsPage() {
             onClick={handleLogout}
           >
             <LogOut className="h-4 w-4 mr-2" />
-            Изход от акаунта
+            {t.settings.logout}
           </Button>
         </CardContent>
       </Card>

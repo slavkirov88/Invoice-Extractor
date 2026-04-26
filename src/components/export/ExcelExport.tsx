@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import type { Protocol, Invoice } from "@/types";
 import { calculateVat } from "@/lib/utils/vat-calculator";
+import { useLocale } from "@/lib/i18n/context";
 
 interface ProtocolWithInvoices extends Protocol {
   invoices: Invoice[];
@@ -14,6 +15,7 @@ export function ExcelExport({
 }: {
   protocol: ProtocolWithInvoices;
 }) {
+  const { t } = useLocale();
   const handleExport = async () => {
     const ExcelJS = (await import("exceljs")).default;
     const wb = new ExcelJS.Workbook();
@@ -34,35 +36,32 @@ export function ExcelExport({
     ];
 
     // Header
-    ws.getCell("B1").value = "ПРОТОКОЛ";
+    ws.getCell("B1").value = t.export.protocol;
     ws.getCell("B1").font = { bold: true, size: 14 };
-    ws.getCell("I1").value = "ДОСТАВЧИК";
+    ws.getCell("I1").value = t.export.supplier;
     ws.getCell("I1").font = { bold: true };
     ws.getCell("I2").value = protocol.supplier_name;
-    ws.getCell("I3").value = "Идентификационен код:";
+    ws.getCell("I3").value = t.export.identificationCode;
     ws.getCell("I4").value = protocol.supplier_vat_id;
 
-    ws.getCell("B4").value = "№";
+    ws.getCell("B4").value = t.export.number;
     ws.getCell("C4").value = protocol.protocol_number;
     ws.getCell("C4").font = { bold: true };
 
     if (protocol.linked_protocol_number) {
-      ws.getCell("D4").value = "към протокол №";
+      ws.getCell("D4").value = t.export.toProtocolNumber;
       ws.getCell("F4").value = protocol.linked_protocol_number;
     }
 
-    ws.getCell("B6").value = "Дата на съставяне";
+    ws.getCell("B6").value = t.export.creationDate;
     ws.getCell("E6").value = protocol.creation_date;
-    ws.getCell("B7").value = "Дата на данъчно събитие";
+    ws.getCell("B7").value = t.export.taxEventDate;
     ws.getCell("E7").value = protocol.tax_event_date;
 
-    ws.getCell("B9").value =
-      "Въз основа на издадените и получени от нас данъчни документи по оказване на обща";
-    ws.getCell("B10").value =
-      "туристическа услуга с референция №";
+    ws.getCell("B9").value = t.export.basedOnDocuments;
+    ws.getCell("B10").value = t.export.touristService;
     ws.getCell("E10").value = protocol.reference_number || "";
-    ws.getCell("B12").value =
-      "съставихме настоящия протокол със следните данни:";
+    ws.getCell("B12").value = t.export.weComposedProtocol;
 
     // Section A
     const sectionA = protocol.invoices
@@ -70,19 +69,18 @@ export function ExcelExport({
       .sort((a, b) => a.sequence_number - b.sequence_number);
 
     let row = 14;
-    ws.getCell(`B${row}`).value =
-      "Раздел А. Получени суми по туристическата услуга :";
+    ws.getCell(`B${row}`).value = t.export.sectionATitle;
     ws.getCell(`B${row}`).font = { bold: true };
 
     row = 16;
     const headerCells = ["B", "C", "E", "F", "H", "I"];
     const headers = [
-      "Пореден №",
-      "Вид на документа",
-      "№ на документа",
-      "Дата на издаване",
-      "ИД на контрагента",
-      "Стойност EUR",
+      t.export.seqNumber,
+      t.export.documentType,
+      t.export.documentNumber,
+      t.export.issueDate,
+      t.export.counterpartyId,
+      t.export.amountEUR,
     ];
     headers.forEach((h, i) => {
       ws.getCell(`${headerCells[i]}${row}`).value = h;
@@ -105,7 +103,7 @@ export function ExcelExport({
       (sum, i) => sum + Number(i.amount),
       0
     );
-    ws.getCell(`C${row}`).value = "Общ размер на получените суми";
+    ws.getCell(`C${row}`).value = t.export.totalReceived;
     ws.getCell(`C${row}`).font = { bold: true };
     ws.getCell(`I${row}`).value = totalA;
     ws.getCell(`I${row}`).numFmt = "#,##0.00";
@@ -117,8 +115,7 @@ export function ExcelExport({
       .sort((a, b) => a.sequence_number - b.sequence_number);
 
     row += 3;
-    ws.getCell(`B${row}`).value =
-      "Раздел Б.  Платени суми по туристическата услуга";
+    ws.getCell(`B${row}`).value = t.export.sectionBTitle;
     ws.getCell(`B${row}`).font = { bold: true };
 
     row += 2;
@@ -143,45 +140,87 @@ export function ExcelExport({
       (sum, i) => sum + Number(i.amount),
       0
     );
-    ws.getCell(`C${row}`).value = "Общ размер на платените суми";
+    ws.getCell(`C${row}`).value = t.export.totalPaid;
     ws.getCell(`C${row}`).font = { bold: true };
     ws.getCell(`I${row}`).value = totalB;
     ws.getCell(`I${row}`).numFmt = "#,##0.00";
     ws.getCell(`I${row}`).font = { bold: true };
 
+    // Commission section (only for commission protocols)
+    if (protocol.protocol_type === "commission") {
+      const sectionCommission = protocol.invoices
+        .filter((i) => i.section === "commission")
+        .sort((a, b) => a.sequence_number - b.sequence_number);
+
+      row += 3;
+      ws.getCell(`B${row}`).value = t.export.commissionTitle;
+      ws.getCell(`B${row}`).font = { bold: true };
+
+      row += 2;
+      const commHeaders = [t.export.seqNumber, t.export.commissionInvoiceNumber, t.export.commissionDate, t.export.commissionAmountEUR];
+      const commCells = ["B", "C", "F", "I"];
+      commHeaders.forEach((h, i) => {
+        ws.getCell(`${commCells[i]}${row}`).value = h;
+        ws.getCell(`${commCells[i]}${row}`).font = { bold: true };
+      });
+
+      sectionCommission.forEach((inv, idx) => {
+        const r = row + 1 + idx;
+        ws.getCell(`B${r}`).value = inv.sequence_number;
+        ws.getCell(`C${r}`).value = inv.document_number;
+        ws.getCell(`F${r}`).value = inv.issue_date;
+        ws.getCell(`I${r}`).value = Number(inv.amount);
+        ws.getCell(`I${r}`).numFmt = "#,##0.00";
+        // Green background
+        ["B", "C", "F", "I"].forEach((col) => {
+          ws.getCell(`${col}${r}`).fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FFD5F5E3" },
+          };
+        });
+      });
+
+      const totalComm = sectionCommission.reduce((sum, i) => sum + Number(i.amount), 0);
+      row = row + 1 + Math.max(sectionCommission.length, 1) + 1;
+      ws.getCell(`C${row}`).value = t.export.totalCommission;
+      ws.getCell(`C${row}`).font = { bold: true };
+      ws.getCell(`I${row}`).value = totalComm;
+      ws.getCell(`I${row}`).numFmt = "#,##0.00";
+      ws.getCell(`I${row}`).font = { bold: true };
+    }
+
     // Section C - VAT
     const vat = calculateVat(protocol.invoices, protocol.tax_rate);
 
     row += 2;
-    ws.getCell(`B${row}`).value = "Раздел В. Изчисляване на ДДС";
+    ws.getCell(`B${row}`).value = t.export.sectionCTitle;
     ws.getCell(`B${row}`).font = { bold: true };
 
     row += 2;
-    ws.getCell(`B${row}`).value = "1. Марж в цената";
+    ws.getCell(`B${row}`).value = t.export.margin;
     ws.getCell(`I${row}`).value = vat.margin;
     ws.getCell(`I${row}`).numFmt = "#,##0.00";
     row++;
-    ws.getCell(`B${row}`).value =
-      "2. Данъчна основа:  р. 1 / (100 + р. 3) *100";
+    ws.getCell(`B${row}`).value = t.export.taxBase;
     ws.getCell(`I${row}`).value = vat.taxBase;
     ws.getCell(`I${row}`).numFmt = "#,##0.00";
     row++;
-    ws.getCell(`B${row}`).value = "3. Данъчна ставка %";
+    ws.getCell(`B${row}`).value = t.export.taxRatePercent;
     ws.getCell(`I${row}`).value = vat.taxRate;
     row++;
-    ws.getCell(`B${row}`).value =
-      "4. Данък добавена стойност (р. 2 * р. 3) / 100";
+    ws.getCell(`B${row}`).value = t.export.vatAmount;
     ws.getCell(`I${row}`).value = vat.vatAmount;
     ws.getCell(`I${row}`).numFmt = "#,##0.000";
     ws.getCell(`I${row}`).font = { bold: true };
 
     row += 3;
-    ws.getCell(`B${row}`).value = "чл.140, ал.1 от ЗДДС";
-    ws.getCell(`G${row}`).value = "Съставил:";
+    ws.getCell(`B${row}`).value = t.export.legalArticle;
+    ws.getCell(`G${row}`).value = t.export.createdBy;
     ws.getCell(`G${row}`).font = { bold: true };
     ws.getCell(`H${row}`).value = protocol.compiled_by || "";
     row++;
-    ws.getCell(`G${row}`).value = "Одобрил:";
+    ws.getCell(`G${row}`).value = t.export.approvedBy;
     ws.getCell(`G${row}`).font = { bold: true };
     ws.getCell(`H${row}`).value = protocol.approved_by || "";
 

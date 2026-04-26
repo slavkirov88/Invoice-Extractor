@@ -21,7 +21,7 @@ export interface Protocol {
 export interface Invoice {
   id: string;
   protocol_id: string;
-  section: "A" | "B";
+  section: "A" | "B" | "commission";
   sequence_number: number;
   document_type: string;
   document_number: string;

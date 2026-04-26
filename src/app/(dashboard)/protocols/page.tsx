@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { createClient } from "@/lib/supabase/server";
+import { getLocaleFromCookies, getDictionary } from "@/lib/i18n";
 import { ProtocolList } from "@/components/protocols/ProtocolList";
 import { MarginReportButton } from "@/components/protocols/MarginReportButton";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,8 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 
 export default async function ProtocolsPage() {
+  const locale = await getLocaleFromCookies();
+  const t = getDictionary(locale);
   const supabase = await createClient();
 
   const {
@@ -21,16 +24,16 @@ export default async function ProtocolsPage() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    return <div className="text-destructive">Грешка: {error.message}</div>;
+    return <div className="text-destructive">{t.protocols.errorLoading}: {error.message}</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Протоколи</h1>
+          <h1 className="text-3xl font-bold">{t.protocols.title}</h1>
           <p className="text-muted-foreground">
-            Управление на протоколи по ЗДДС
+            {t.protocols.subtitle}
           </p>
         </div>
         <div className="flex items-end gap-3">
@@ -38,7 +41,7 @@ export default async function ProtocolsPage() {
           <Button asChild>
             <Link href="/protocols/new">
               <Plus className="mr-2 h-4 w-4" />
-              Нов протокол
+              {t.protocols.newProtocol}
             </Link>
           </Button>
         </div>

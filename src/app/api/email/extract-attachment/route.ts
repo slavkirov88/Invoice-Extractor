@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { Mistral } from "@mistralai/mistralai";
 import { withRetry } from "@/lib/mistral/with-retry";
+import { ImapFlow } from "imapflow";
+import { decryptPassword } from "@/lib/email/encryption";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -28,10 +30,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Липсва attachmentId" }, { status: 400 });
   }
 
-  // Verify ownership
-  const { data: attachment, error: attError } = await supabase
+  // Verify ownership — fetch all fields needed
+  const admin = getAdminClient();
+  const { data: attachment, error: attError } = await admin
     .from("email_attachments")
-    .select("storage_path, filename, mime_type")
+    .select("storage_path, filename, mime_type, imap_uid, imap_part, account_id")
     .eq("id", attachmentId)
     .eq("user_id", user.id)
     .single();
@@ -47,15 +50,94 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Download file from Supabase Storage using admin client
-  const admin = getAdminClient();
-  const { data: fileData, error: downloadError } = await admin.storage
-    .from("email-attachments")
-    .download(attachment.storage_path);
+  // Try to get file buffer — from Storage first, fall back to IMAP
+  let fileBuffer: Buffer | null = null;
 
-  if (downloadError || !fileData) {
+  if (attachment.storage_path) {
+    const { data: fileData, error: downloadError } = await admin.storage
+      .from("email-attachments")
+      .download(attachment.storage_path);
+
+    if (!downloadError && fileData) {
+      fileBuffer = Buffer.from(await fileData.arrayBuffer());
+    }
+  }
+
+  // If not in Storage but have IMAP metadata — fetch directly
+  if (!fileBuffer && attachment.imap_uid && attachment.imap_part && attachment.account_id) {
+    const { data: account } = await admin
+      .from("email_accounts")
+      .select("*")
+      .eq("id", attachment.account_id)
+      .single();
+
+    if (account) {
+      try {
+        const password = decryptPassword(account.encrypted_password);
+        const client = new ImapFlow({
+          host: account.imap_host,
+          port: Number(account.imap_port),
+          secure: account.imap_secure,
+          auth: { user: account.username, pass: password },
+          logger: false,
+          connectionTimeout: 30000,
+          greetingTimeout: 15000,
+          socketTimeout: 30000,
+        });
+
+        await client.connect();
+        const lock = await client.getMailboxLock("INBOX");
+        try {
+          const partData = await client.fetchOne(
+            String(attachment.imap_uid),
+            { bodyParts: [attachment.imap_part] },
+            { uid: true }
+          );
+          const bpMap = (partData as unknown as { bodyParts?: Map<string, Buffer> }).bodyParts;
+          const rawBuf = bpMap?.get(attachment.imap_part);
+          // ImapFlow returns raw base64-encoded content — decode it
+          const buf = rawBuf && rawBuf.length > 0
+            ? Buffer.from(rawBuf.toString("ascii").replace(/[\r\n]/g, ""), "base64")
+            : null;
+          if (buf && buf.length > 0) {
+            fileBuffer = buf;
+
+            // Upload to Storage for future use
+            const safeFilename = attachment.filename
+              .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+              .replace(/[^\x00-\x7F]/g, "_")
+              .replace(/[^a-zA-Z0-9._-]/g, "_")
+              .replace(/_+/g, "_")
+              .replace(/^_|_$/g, "") || "attachment.bin";
+            const storagePath = `${user.id}/${attachmentId}/${safeFilename}`;
+
+            const { error: uploadErr } = await admin.storage
+              .from("email-attachments")
+              .upload(storagePath, buf, {
+                contentType: attachment.mime_type || "application/octet-stream",
+                upsert: true,
+              });
+
+            if (!uploadErr) {
+              await admin
+                .from("email_attachments")
+                .update({ status: "downloaded", storage_path: storagePath, file_size: buf.length })
+                .eq("id", attachmentId);
+            }
+          }
+        } finally {
+          lock.release();
+        }
+        try { await client.logout(); } catch { /* ignore */ }
+      } catch {
+        // IMAP fallback failed — fileBuffer stays null
+      }
+    }
+  }
+
+  if (!fileBuffer) {
     return NextResponse.json(
-      { error: "Грешка при изтегляне на файла от Storage" },
+      { error: "Файлът не може да бъде изтеглен. Моля синхронизирайте имейлите отново." },
       { status: 500 }
     );
   }
@@ -70,8 +152,7 @@ export async function POST(request: NextRequest) {
   const mistral = new Mistral({ apiKey: process.env.MISTRAL_API_KEY });
 
   try {
-    const arrayBuffer = await fileData.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString("base64");
+    const base64 = fileBuffer.toString("base64");
 
     // OCR extraction
     let ocrText = "";

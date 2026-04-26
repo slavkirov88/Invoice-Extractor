@@ -9,8 +9,10 @@ import { Label } from "@/components/ui/label";
 import { FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import type { Invoice } from "@/types";
+import { useLocale } from "@/lib/i18n/context";
 
 export function MarginReportButton() {
+  const { t } = useLocale();
   const supabase = createClient();
   const [year, setYear] = useState(new Date().getFullYear().toString());
   const [month, setMonth] = useState(
@@ -22,7 +24,7 @@ export function MarginReportButton() {
     const y = parseInt(year, 10);
     const m = parseInt(month, 10);
     if (!y || m < 1 || m > 12) {
-      toast.error("Въведете валиден период");
+      toast.error(t.marginReport.toastInvalidPeriod);
       return;
     }
 
@@ -37,7 +39,7 @@ export function MarginReportButton() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        toast.error("Не сте влезли в системата");
+        toast.error(t.marginReport.toastNotLoggedIn);
         return;
       }
 
@@ -52,12 +54,12 @@ export function MarginReportButton() {
         .order("protocol_number", { ascending: true });
 
       if (error) {
-        toast.error("Грешка при зареждане: " + error.message);
+        toast.error(t.marginReport.toastLoadError + ": " + error.message);
         return;
       }
 
       if (!protocols || protocols.length === 0) {
-        toast.error("Няма протоколи за избрания период");
+        toast.error(t.marginReport.toastNoProtocols);
         return;
       }
 
@@ -79,14 +81,14 @@ export function MarginReportButton() {
 
       // Row 1 — headers
       const headerRow = ws.addRow([
-        "№ по ред",
-        "ПРОТОКОЛ №",
-        "Дестинация",
+        t.marginReport.seqNumber,
+        t.marginReport.protocolNumber,
+        t.marginReport.destination,
         null,
-        "Данъчна Основа",
-        "ДДС %",
-        "ДДС",
-        "Данъчен период",
+        t.marginReport.taxBase,
+        t.marginReport.vatPercent,
+        t.marginReport.vat,
+        t.marginReport.taxPeriod,
       ]);
       headerRow.font = { bold: true };
       headerRow.alignment = { horizontal: "center", vertical: "middle" };
@@ -126,7 +128,7 @@ export function MarginReportButton() {
 
       // Totals row
       const totalsRow = ws.addRow([
-        "обща Сума",
+        t.marginReport.totalSum,
         null,
         null,
         null,
@@ -152,9 +154,9 @@ export function MarginReportButton() {
       a.click();
       URL.revokeObjectURL(url);
 
-      toast.success(`Справката е изтеглена (${protocols.length} протокола)`);
+      toast.success(`${t.marginReport.toastDownloaded} (${protocols.length} ${t.common.protocols})`);
     } catch (err) {
-      toast.error("Неочаквана грешка при генериране");
+      toast.error(t.marginReport.toastUnexpectedError);
       console.error(err);
     } finally {
       setLoading(false);
@@ -164,7 +166,7 @@ export function MarginReportButton() {
   return (
     <div className="flex items-end gap-2">
       <div className="space-y-1">
-        <Label className="text-xs text-muted-foreground">Месец</Label>
+        <Label className="text-xs text-muted-foreground">{t.marginReport.month}</Label>
         <Input
           type="number"
           min={1}
@@ -175,7 +177,7 @@ export function MarginReportButton() {
         />
       </div>
       <div className="space-y-1">
-        <Label className="text-xs text-muted-foreground">Година</Label>
+        <Label className="text-xs text-muted-foreground">{t.marginReport.year}</Label>
         <Input
           type="number"
           min={2020}
@@ -187,7 +189,7 @@ export function MarginReportButton() {
       </div>
       <Button variant="outline" onClick={handleExport} disabled={loading}>
         <FileSpreadsheet className="mr-2 h-4 w-4" />
-        {loading ? "Генериране..." : "Справка за марж"}
+        {loading ? t.marginReport.generating : t.marginReport.report}
       </Button>
     </div>
   );

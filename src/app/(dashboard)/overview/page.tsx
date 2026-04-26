@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { createClient } from "@/lib/supabase/server";
 import { getUserCredits } from "@/lib/credits";
+import { getLocaleFromCookies, getDictionary } from "@/lib/i18n";
 import {
   Card,
   CardContent,
@@ -17,8 +18,12 @@ import {
   BadgeCheck,
 } from "lucide-react";
 import { TrialCTA } from "@/components/dashboard/TrialCTA";
+import { SuccessHandler } from "@/components/dashboard/SuccessHandler";
+import { Suspense } from "react";
 
 export default async function DashboardPage() {
+  const locale = await getLocaleFromCookies();
+  const t = getDictionary(locale);
   const supabase = await createClient();
 
   const {
@@ -54,37 +59,38 @@ export default async function DashboardPage() {
 
   const stats = [
     {
-      title: "Протоколи",
+      title: t.overview.protocolsCard,
       value: protocolCount || 0,
       icon: FileText,
-      description: "Общ брой протоколи",
+      description: t.overview.protocolsDescription,
     },
     {
-      title: "Фактури",
+      title: t.overview.invoicesCard,
       value: invoiceCount || 0,
       icon: Receipt,
-      description: "Общ брой фактури",
+      description: t.overview.invoicesDescription,
     },
     {
-      title: "Получени суми",
+      title: t.overview.receivedCard,
       value: `${totalReceived.toFixed(2)} €`,
       icon: TrendingUp,
-      description: "Общо получени (Раздел А)",
+      description: t.overview.receivedDescription,
     },
     {
-      title: "Платени суми",
+      title: t.overview.paidCard,
       value: `${totalPaid.toFixed(2)} €`,
       icon: Calculator,
-      description: "Общо платени (Раздел Б)",
+      description: t.overview.paidDescription,
     },
   ];
 
   return (
     <div className="space-y-6">
+      <Suspense fallback={null}><SuccessHandler /></Suspense>
       <div>
-        <h1 className="text-3xl font-bold">Табло</h1>
+        <h1 className="text-3xl font-bold">{t.overview.title}</h1>
         <p className="text-muted-foreground">
-          Преглед на вашата активност
+          {t.overview.subtitle}
         </p>
       </div>
 
@@ -98,10 +104,10 @@ export default async function DashboardPage() {
               <BadgeCheck className="h-8 w-8 text-green-400" />
               <div>
                 <div className="font-semibold">
-                  {credits.planName} — Неограничен достъп
+                  {credits.plan === "professional" ? t.plans.starter : credits.plan === "business" ? t.plans.business : t.plans.free} — {t.overview.unlimitedAccess}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Създавайте неограничен брой протоколи
+                  {t.overview.unlimitedNote}
                 </div>
               </div>
             </div>

@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { AlertCircle, Zap } from "lucide-react";
 import Link from "next/link";
 import type { UserCredits } from "@/lib/credits";
+import { useLocale } from "@/lib/i18n/context";
 
 interface SupplierTemplate {
   supplier_name: string;
@@ -52,6 +53,7 @@ interface ProtocolFormProps {
 }
 
 export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: ProtocolFormProps) {
+  const { t } = useLocale();
   const [loading, setLoading] = useState(false);
   const [credits, setCredits] = useState<UserCredits | null>(null);
   const [creditsLoading, setCreditsLoading] = useState(true);
@@ -62,7 +64,7 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
     creation_date: initialData?.creation_date ?? new Date().toISOString().split("T")[0],
     tax_event_date: initialData?.tax_event_date ?? new Date().toISOString().split("T")[0],
     reference_number: initialData?.reference_number ?? "",
-    protocol_type: (initialData?.protocol_type ?? "eu") as "eu" | "non_eu" | "mixed",
+    protocol_type: (initialData?.protocol_type ?? "eu") as "eu" | "non_eu" | "mixed" | "commission",
     linked_protocol_number: initialData?.linked_protocol_number ?? "",
     compiled_by: initialData?.compiled_by ?? "",
     approved_by: initialData?.approved_by ?? "",
@@ -135,7 +137,7 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
         if (res.ok) {
           const latest: UserCredits = await res.json();
           if (!latest.isUnlimited) {
-            toast.error("Нямате активен абонамент. Започнете безплатен тест.");
+            toast.error(t.protocols.toastNoSubscription);
             setCredits(latest);
             setLoading(false);
             return;
@@ -150,7 +152,7 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      toast.error("Не сте влезли в системата");
+      toast.error(t.protocols.toastNotLoggedIn);
       setLoading(false);
       return;
     }
@@ -177,18 +179,31 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
         .eq("id", protocolId);
 
       if (error) {
-        toast.error("Грешка при запис: " + error.message);
+        toast.error(t.protocols.toastSaveError + ": " + error.message);
       } else {
-        toast.success("Протоколът е обновен успешно");
+        toast.success(t.protocols.toastUpdated);
         onSuccess?.(protocolId);
       }
       setLoading(false);
       return;
     }
 
+    // Calculate next protocol number per supplier
+    const { data: maxResult } = await supabase
+      .from("protocols")
+      .select("protocol_number")
+      .eq("user_id", user.id)
+      .eq("supplier_vat_id", formData.supplier_vat_id)
+      .order("protocol_number", { ascending: false })
+      .limit(1)
+      .single();
+
+    const nextProtocolNumber = (maxResult?.protocol_number ?? 0) + 1;
+
     const { data, error } = await supabase
       .from("protocols")
       .insert({
+        protocol_number: nextProtocolNumber,
         supplier_name: formData.supplier_name,
         supplier_vat_id: formData.supplier_vat_id,
         creation_date: formData.creation_date,
@@ -208,10 +223,10 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
       .single();
 
     if (error) {
-      toast.error("Грешка при създаване на протокол: " + error.message);
+      toast.error(t.protocols.toastCreateError + ": " + error.message);
     } else {
       toast.success(
-        `Протокол №${data.protocol_number} е създаден успешно`
+        `${t.protocols.protocolNumber}${data.protocol_number} ${t.protocols.toastCreated}`
       );
       onSuccess?.(data.id);
     }
@@ -238,10 +253,9 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
               <Zap className="h-8 w-8 text-violet-400" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold">Започнете безплатен тест</h3>
+              <h3 className="text-lg font-semibold">{t.protocols.upsellTitle}</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                За да създавате протоколи, започнете 14-дневен безплатен тестов период.
-                Не ви таксуваме през първите 14 дни.
+                {t.protocols.upsellText}
               </p>
             </div>
             <Link
@@ -249,11 +263,11 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-8 py-3 text-sm font-medium text-white hover:bg-violet-700 transition-colors"
             >
               <Zap className="h-4 w-4" />
-              Започни 14-дневен безплатен тест
+              {t.protocols.upsellCTA}
             </Link>
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <AlertCircle className="h-3 w-3" />
-              Съществуващите протоколи и фактури остават достъпни
+              {t.protocols.upsellNote}
             </p>
           </div>
         </CardContent>
@@ -264,13 +278,13 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Данни на протокола</CardTitle>
+        <CardTitle>{t.protocols.protocolData}</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           {!protocolId && templates.length > 0 && (
             <div className="space-y-2">
-              <Label>Избери доставчик (по предишен протокол)</Label>
+              <Label>{t.protocols.selectSupplier}</Label>
               <Select
                 value=""
                 onValueChange={(vatId) => {
@@ -289,7 +303,7 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="— Избери съществуващ доставчик —" />
+                  <SelectValue placeholder={t.protocols.selectSupplierDefault} />
                 </SelectTrigger>
                 <SelectContent>
                   {templates.map((t) => (
@@ -300,32 +314,32 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Изборът ще попълни полетата автоматично — можете да ги промените след това.
+                {t.protocols.supplierAutoFillHint}
               </p>
             </div>
           )}
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="supplier_name">Име на доставчика</Label>
+              <Label htmlFor="supplier_name">{t.protocols.supplierName}</Label>
               <Input
                 id="supplier_name"
                 value={formData.supplier_name}
                 onChange={(e) =>
                   setFormData({ ...formData, supplier_name: e.target.value })
                 }
-                placeholder="напр. СМ ТРАВЕЛ ООД"
+                placeholder={t.protocols.supplierNamePlaceholder}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="supplier_vat_id">ЕИК / ДДС номер</Label>
+              <Label htmlFor="supplier_vat_id">{t.protocols.vatId}</Label>
               <Input
                 id="supplier_vat_id"
                 value={formData.supplier_vat_id}
                 onChange={(e) =>
                   setFormData({ ...formData, supplier_vat_id: e.target.value })
                 }
-                placeholder="напр. BG 204258128"
+                placeholder={t.protocols.vatIdPlaceholder}
                 required
               />
             </div>
@@ -333,7 +347,7 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="creation_date">Дата на съставяне</Label>
+              <Label htmlFor="creation_date">{t.protocols.creationDate}</Label>
               <Input
                 id="creation_date"
                 type="date"
@@ -345,7 +359,7 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="tax_event_date">Дата на данъчно събитие</Label>
+              <Label htmlFor="tax_event_date">{t.protocols.taxEventDate}</Label>
               <Input
                 id="tax_event_date"
                 type="date"
@@ -360,10 +374,10 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="protocol_type">Тип протокол</Label>
+              <Label htmlFor="protocol_type">{t.protocols.protocolType}</Label>
               <Select
                 value={formData.protocol_type}
-                onValueChange={(value: "eu" | "non_eu" | "mixed") =>
+                onValueChange={(value: "eu" | "non_eu" | "mixed" | "commission") =>
                   setFormData({ ...formData, protocol_type: value })
                 }
               >
@@ -371,14 +385,15 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="eu">в ЕС (20%)</SelectItem>
-                  <SelectItem value="non_eu">извън ЕС (0%)</SelectItem>
-                  <SelectItem value="mixed">Смесен</SelectItem>
+                  <SelectItem value="eu">{t.protocols.typeEURate}</SelectItem>
+                  <SelectItem value="non_eu">{t.protocols.typeNonEURate}</SelectItem>
+                  <SelectItem value="mixed">{t.protocols.typeMixedOption}</SelectItem>
+                  <SelectItem value="commission">{t.protocols.typeCommissionOption}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Данъчна ставка (%)</Label>
+              <Label>{t.protocols.taxRate}</Label>
               <Input
                 value={formData.protocol_type === "mixed" ? "20 / 0" : taxRate}
                 disabled
@@ -386,28 +401,28 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
               />
               {formData.protocol_type === "mixed" && (
                 <p className="text-xs text-muted-foreground">
-                  Ставката се задава за всяка фактура поотделно
+                  {t.protocols.taxRatePerInvoiceHint}
                 </p>
               )}
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="destination">Дестинация (незадължително)</Label>
+            <Label htmlFor="destination">{t.protocols.destination}</Label>
             <Input
               id="destination"
               value={formData.destination}
               onChange={(e) =>
                 setFormData({ ...formData, destination: e.target.value })
               }
-              placeholder="напр. Италия, Гърция"
+              placeholder={t.protocols.destinationPlaceholder}
             />
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="reference_number">
-                Референция № (незадължително)
+                {t.protocols.referenceNumber}
               </Label>
               <Input
                 id="reference_number"
@@ -422,7 +437,7 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
             </div>
             <div className="space-y-2">
               <Label htmlFor="linked_protocol_number">
-                Към протокол № (коригиращ, незадължително)
+                {t.protocols.linkedProtocol}
               </Label>
               <Input
                 id="linked_protocol_number"
@@ -440,7 +455,7 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="compiled_by">Съставил</Label>
+              <Label htmlFor="compiled_by">{t.protocols.createdBy}</Label>
               <Input
                 id="compiled_by"
                 value={formData.compiled_by}
@@ -451,7 +466,7 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="approved_by">Одобрил</Label>
+              <Label htmlFor="approved_by">{t.protocols.approvedBy}</Label>
               <Input
                 id="approved_by"
                 value={formData.approved_by}
@@ -466,13 +481,13 @@ export function ProtocolForm({ onSuccess, protocolId, initialData, onCancel }: P
           <div className="flex gap-2">
             {onCancel && (
               <Button type="button" variant="outline" onClick={onCancel} disabled={loading} className="flex-1">
-                Откажи
+                {t.common.cancel}
               </Button>
             )}
             <Button type="submit" disabled={loading} className={onCancel ? "flex-1" : "w-full"}>
               {loading
-                ? (protocolId ? "Запазване..." : "Създаване...")
-                : (protocolId ? "Запази промените" : "Създай протокол")}
+                ? (protocolId ? t.common.saving : t.common.creating)
+                : (protocolId ? t.common.saveChanges : t.protocols.createProtocol)}
             </Button>
           </div>
         </form>

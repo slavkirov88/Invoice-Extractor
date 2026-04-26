@@ -35,15 +35,21 @@ import {
 import Link from "next/link";
 import type { Protocol, ExtractedInvoiceData } from "@/types";
 import type { UserCredits } from "@/lib/credits";
+import { useLocale } from "@/lib/i18n/context";
 
 type Step = "upload" | "extracting" | "review" | "saving";
 
 export default function AddInvoicePage() {
   return (
-    <Suspense fallback={<div className="p-6">Зареждане...</div>}>
+    <Suspense fallback={<div className="p-6"><LoadingFallback /></div>}>
       <AddInvoiceContent />
     </Suspense>
   );
+}
+
+function LoadingFallback() {
+  const { t } = useLocale();
+  return <>{t.common.loading}</>;
 }
 
 function AddInvoiceContent() {
@@ -56,7 +62,7 @@ function AddInvoiceContent() {
   const [selectedProtocolId, setSelectedProtocolId] = useState(
     preselectedProtocol || ""
   );
-  const [invoiceType, setInvoiceType] = useState<"income" | "expense">("income");
+  const [invoiceType, setInvoiceType] = useState<"income" | "expense" | "commission">("income");
   const [invoiceVatRate, setInvoiceVatRate] = useState<20 | 0>(20);
   const [extractedData, setExtractedData] =
     useState<ExtractedInvoiceData | null>(null);
@@ -69,6 +75,7 @@ function AddInvoiceContent() {
   const [credits, setCredits] = useState<UserCredits | null>(null);
   const [creditsLoading, setCreditsLoading] = useState(true);
 
+  const { t } = useLocale();
   const supabase = createClient();
 
   useEffect(() => {
@@ -96,7 +103,7 @@ function AddInvoiceContent() {
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file || file.type !== "application/pdf") {
-      toast.error("Моля качете PDF файл");
+      toast.error(t.invoices.toastUploadPdf);
       return;
     }
 
@@ -114,7 +121,7 @@ function AddInvoiceContent() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Грешка при извличане на данни");
+        throw new Error(data.error || t.invoices.toastExtractError);
       }
 
       setExtractedData(data);
@@ -125,11 +132,11 @@ function AddInvoiceContent() {
         counterparty_vat_id: data.counterparty_vat_id || "",
       });
       setStep("review");
-      toast.success("Данните са извлечени успешно");
+      toast.success(t.invoices.toastExtracted);
     } catch (error) {
       toast.error(
-        "Грешка при извличане на данни: " +
-          (error instanceof Error ? error.message : "Неизвестна грешка")
+        t.invoices.toastExtractError + ": " +
+          (error instanceof Error ? error.message : t.invoices.toastUnknownError)
       );
       setStep("upload");
     }
@@ -143,13 +150,13 @@ function AddInvoiceContent() {
 
   const handleSave = async () => {
     if (!selectedProtocolId) {
-      toast.error("Моля изберете протокол");
+      toast.error(t.invoices.toastSelectProtocol);
       return;
     }
 
     const amountNum = parseFloat(editableData.amount);
     if (!editableData.amount || isNaN(amountNum) || amountNum <= 0) {
-      toast.error("Стойността трябва да е по-голяма от 0");
+      toast.error(t.invoices.toastAmountZero);
       return;
     }
 
@@ -159,12 +166,12 @@ function AddInvoiceContent() {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      toast.error("Не сте влезли в системата");
+      toast.error(t.invoices.toastNotLoggedIn);
       setStep("review");
       return;
     }
 
-    const section = invoiceType === "income" ? "A" : "B";
+    const section = invoiceType === "income" ? "A" : invoiceType === "commission" ? "commission" : "B";
 
     // Get the next sequence number for this section
     const { data: existing } = await supabase
@@ -187,7 +194,7 @@ function AddInvoiceContent() {
       protocol_id: selectedProtocolId,
       section,
       sequence_number: nextSeq,
-      document_type: "Фактура",
+      document_type: t.common.invoice,
       document_number: editableData.documentNumber,
       issue_date: editableData.issueDate,
       counterparty_vat_id: editableData.counterparty_vat_id || null,
@@ -198,10 +205,10 @@ function AddInvoiceContent() {
     });
 
     if (error) {
-      toast.error("Грешка при запис: " + error.message);
+      toast.error(t.invoices.toastSaveError + ": " + error.message);
       setStep("review");
     } else {
-      toast.success("Фактурата е добавена успешно");
+      toast.success(t.invoices.toastAdded);
       router.push(`/protocols/${selectedProtocolId}`);
     }
   };
@@ -228,10 +235,9 @@ function AddInvoiceContent() {
                 <Zap className="h-8 w-8 text-violet-400" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold">Започнете безплатен тест</h3>
+                <h3 className="text-lg font-semibold">{t.invoices.upsellTitle}</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  За да добавяте фактури, започнете 14-дневен безплатен тестов период.
-                  Не ви таксуваме през първите 14 дни.
+                  {t.invoices.upsellText}
                 </p>
               </div>
               <Link
@@ -239,11 +245,11 @@ function AddInvoiceContent() {
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-8 py-3 text-sm font-medium text-white hover:bg-violet-700 transition-colors"
               >
                 <Zap className="h-4 w-4" />
-                Започни 14-дневен безплатен тест
+                {t.invoices.upsellCTA}
               </Link>
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" />
-                Съществуващите фактури остават достъпни
+                {t.invoices.upsellNote}
               </p>
             </div>
           </CardContent>
@@ -255,16 +261,16 @@ function AddInvoiceContent() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Добави фактура</h1>
+        <h1 className="text-3xl font-bold">{t.invoices.addTitle}</h1>
         <p className="text-muted-foreground">
-          Качете PDF фактура и я добавете към протокол
+          {t.invoices.addSubtitle}
         </p>
       </div>
 
       {/* Step indicators */}
       <div className="flex items-center gap-2">
         <Badge variant={step === "upload" ? "default" : "secondary"}>
-          1. Качване
+          {t.invoices.step1}
         </Badge>
         <ArrowRight className="h-4 w-4 text-muted-foreground" />
         <Badge
@@ -272,11 +278,11 @@ function AddInvoiceContent() {
             step === "extracting" || step === "review" ? "default" : "secondary"
           }
         >
-          2. Извличане
+          {t.invoices.step2}
         </Badge>
         <ArrowRight className="h-4 w-4 text-muted-foreground" />
         <Badge variant={step === "saving" ? "default" : "secondary"}>
-          3. Запис
+          {t.invoices.step3}
         </Badge>
       </div>
 
@@ -284,9 +290,9 @@ function AddInvoiceContent() {
       {step === "upload" && (
         <Card>
           <CardHeader>
-            <CardTitle>Качете PDF фактура</CardTitle>
+            <CardTitle>{t.invoices.uploadTitle}</CardTitle>
             <CardDescription>
-              AI софтуер ще извлече номер, дата и стойност от фактурата
+              {t.invoices.uploadDescription}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -301,14 +307,14 @@ function AddInvoiceContent() {
               <input {...getInputProps()} />
               <Upload className="mb-4 h-12 w-12 text-muted-foreground" />
               {isDragActive ? (
-                <p className="text-lg">Пуснете файла тук...</p>
+                <p className="text-lg">{t.invoices.dragActive}</p>
               ) : (
                 <>
                   <p className="text-lg">
-                    Плъзнете PDF файл тук или кликнете за избор
+                    {t.invoices.dragIdle}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Поддържа се само PDF формат
+                    {t.invoices.pdfOnly}
                   </p>
                 </>
               )}
@@ -322,9 +328,9 @@ function AddInvoiceContent() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Loader2 className="mb-4 h-12 w-12 animate-spin text-primary" />
-            <p className="text-lg">Извличане на данни с AI софтуер...</p>
+            <p className="text-lg">{t.invoices.extracting}</p>
             <p className="text-sm text-muted-foreground">
-              Моля изчакайте
+              {t.invoices.pleaseWait}
             </p>
           </CardContent>
         </Card>
@@ -337,16 +343,16 @@ function AddInvoiceContent() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CheckCircle className="h-5 w-5 text-green-500" />
-                Извлечени данни
+                {t.invoices.extractedTitle}
               </CardTitle>
               <CardDescription>
-                Проверете и коригирайте данните при нужда
+                {t.invoices.extractedDescription}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
-                  <Label>№ на документа</Label>
+                  <Label>{t.invoices.documentNumber}</Label>
                   <Input
                     value={editableData.documentNumber}
                     onChange={(e) =>
@@ -358,7 +364,7 @@ function AddInvoiceContent() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Дата на издаване</Label>
+                  <Label>{t.invoices.issueDate}</Label>
                   <Input
                     type="date"
                     value={editableData.issueDate}
@@ -371,7 +377,7 @@ function AddInvoiceContent() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Стойност (EUR)</Label>
+                  <Label>{t.invoices.amountEUR}</Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -386,7 +392,7 @@ function AddInvoiceContent() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>ЕИК на контрагент</Label>
+                <Label>{t.invoices.counterpartyVatId}</Label>
                 <Input
                   value={editableData.counterparty_vat_id}
                   onChange={(e) =>
@@ -395,7 +401,7 @@ function AddInvoiceContent() {
                       counterparty_vat_id: e.target.value,
                     })
                   }
-                  placeholder="напр. BG123456789 или 999999999"
+                  placeholder={t.invoices.counterpartyPlaceholder}
                 />
               </div>
             </CardContent>
@@ -403,31 +409,31 @@ function AddInvoiceContent() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Настройки</CardTitle>
+              <CardTitle>{t.invoices.settingsTitle}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Протокол</Label>
+                <Label>{t.invoices.protocol}</Label>
                 <Select
                   value={selectedProtocolId}
                   onValueChange={setSelectedProtocolId}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Изберете протокол" />
+                    <SelectValue placeholder={t.invoices.selectProtocol} />
                   </SelectTrigger>
                   <SelectContent>
                     {protocols.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         №{p.protocol_number} - {p.supplier_name} (
                         {p.protocol_type === "eu"
-                          ? "в ЕС"
+                          ? t.protocols.typeEU
                           : p.protocol_type === "non_eu"
-                          ? "извън ЕС"
+                          ? t.protocols.typeNonEU
                           : p.protocol_type === "mixed"
-                          ? "Смесен"
+                          ? t.protocols.typeMixed
                           : p.protocol_type === "commission"
-                          ? "Комисионен"
-                          : "Стандартен"}
+                          ? t.protocols.typeCommission
+                          : t.protocols.typeStandard}
                         )
                       </SelectItem>
                     ))}
@@ -436,21 +442,26 @@ function AddInvoiceContent() {
               </div>
 
               <div className="space-y-2">
-                <Label>Тип фактура</Label>
+                <Label>{t.invoices.invoiceType}</Label>
                 <Select
                   value={invoiceType}
-                  onValueChange={(v: "income" | "expense") => setInvoiceType(v)}
+                  onValueChange={(v: "income" | "expense" | "commission") => setInvoiceType(v)}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="income">
-                      Приходна (Раздел А - получени суми)
+                      {t.invoices.income}
                     </SelectItem>
                     <SelectItem value="expense">
-                      Разходна (Раздел Б - платени суми)
+                      {t.invoices.expense}
                     </SelectItem>
+                    {protocols.find((p) => p.id === selectedProtocolId)?.protocol_type === "commission" && (
+                      <SelectItem value="commission">
+                        {t.invoices.commissionType}
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -458,7 +469,7 @@ function AddInvoiceContent() {
               {/* VAT rate selector — only for mixed protocols */}
               {protocols.find((p) => p.id === selectedProtocolId)?.protocol_type === "mixed" && (
                 <div className="space-y-2">
-                  <Label>ДДС ставка</Label>
+                  <Label>{t.invoices.vatRate}</Label>
                   <Select
                     value={String(invoiceVatRate)}
                     onValueChange={(v) => setInvoiceVatRate(Number(v) as 20 | 0)}
@@ -467,8 +478,8 @@ function AddInvoiceContent() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="20">в ЕС — 20%</SelectItem>
-                      <SelectItem value="0">извън ЕС — 0%</SelectItem>
+                      <SelectItem value="20">{t.invoices.vatEU}</SelectItem>
+                      <SelectItem value="0">{t.invoices.vatNonEU}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -483,10 +494,10 @@ function AddInvoiceContent() {
                 {step === "saving" ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Записване...
+                    {t.common.saving}
                   </>
                 ) : (
-                  "Добави фактура"
+                  t.invoices.addTitle
                 )}
               </Button>
             </CardContent>

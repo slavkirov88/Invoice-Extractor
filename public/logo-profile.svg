@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7c3aed"/>
+      <stop offset="100%" style="stop-color:#a855f7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="400" height="400" rx="80" fill="url(#bg)"/>
+
+  <!-- Receipt/invoice shape -->
+  <path d="M112 64 H288 V280 L266 264 L244 280 L222 264 L200 280 L178 264 L156 280 L134 264 L112 280 Z" fill="white"/>
+
+  <!-- Document lines -->
+  <rect x="152" y="120" width="96" height="22" rx="11" fill="#7c3aed"/>
+  <rect x="152" y="158" width="66" height="17" rx="8" fill="#7c3aed" opacity="0.45"/>
+  <rect x="152" y="190" width="84" height="17" rx="8" fill="#7c3aed" opacity="0.45"/>
+  <rect x="152" y="222" width="54" height="17" rx="8" fill="#7c3aed" opacity="0.3"/>
+
+  <!-- Checkmark badge -->
+  <circle cx="288" cy="112" r="44" fill="#a855f7"/>
+  <circle cx="288" cy="112" r="44" fill="white" opacity="0.15"/>
+  <path d="M269 112 L282 126 L309 98" stroke="white" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- AI sparkle -->
+  <g transform="translate(122, 82)">
+    <path d="M0 -12 L3 -3 L12 0 L3 3 L0 12 L-3 3 L-12 0 L-3 -3 Z" fill="white" opacity="0.8"/>
+  </g>
+
+  <!-- Text -->
+  <text x="200" y="348" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="42" fill="white" letter-spacing="1">TravelInvoices</text>
+</svg>

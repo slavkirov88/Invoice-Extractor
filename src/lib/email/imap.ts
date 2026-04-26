@@ -115,7 +115,10 @@ export async function syncEmailAccount(
     try {
       const sinceDate = force || !account.last_synced_at
         ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-        : new Date(account.last_synced_at);
+        : new Date(Math.max(
+            new Date(account.last_synced_at).getTime() - 2 * 24 * 60 * 60 * 1000,
+            Date.now() - 30 * 24 * 60 * 60 * 1000
+          ));
 
       console.log(`[IMAP] 5/7 searching messages since ${sinceDate.toISOString()} (force=${force}, last_synced=${account.last_synced_at ?? 'never'})`);
 
@@ -154,65 +157,37 @@ export async function syncEmailAccount(
           // Check duplicate
           const { data: existing } = await supabase
             .from('email_attachments')
-            .select('id')
+            .select('id, imap_uid')
             .eq('account_id', accountId)
-            .eq('email_message_id', messageId)
-            .limit(1);
+            .eq('email_message_id', messageId);
 
           if (existing && existing.length > 0) {
-            console.log(`[IMAP] msg="${subject}" — already synced, skipping`);
-            continue;
+            const allHaveImapUid = existing.every((r: { imap_uid: number | null }) => r.imap_uid);
+            if (allHaveImapUid) {
+              console.log(`[IMAP] msg="${subject}" — already synced with imap_uid, skipping`);
+              continue;
+            }
+            // Old records without imap_uid — delete and re-sync
+            const idsToDelete = existing
+              .filter((r: { imap_uid: number | null }) => !r.imap_uid)
+              .map((r: { id: string }) => r.id);
+            if (idsToDelete.length > 0) {
+              console.log(`[IMAP] msg="${subject}" — deleting ${idsToDelete.length} old record(s) without imap_uid`);
+              await supabase.from('email_attachments').delete().in('id', idsToDelete);
+            }
           }
 
-          // 7. Process attachments
+          // 7. Save attachment metadata (no download yet)
           for (const part of attachmentParts) {
             if (!part.part) continue;
 
             const filename = getFilename(part) || 'attachment.bin';
-            const safeFilename = filename
-              .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-              .replace(/[^\x00-\x7F]/g, '_')
-              .replace(/[^a-zA-Z0-9._-]/g, '_')
-              .replace(/_+/g, '_')
-              .replace(/^_|_$/g, '');
-
-            console.log(`[IMAP] 7/7 downloading attachment "${filename}" (part=${part.part} type=${part.type})`);
-
-            const partData = await client.fetchOne(
-              String(message.uid),
-              { bodyParts: [part.part] },
-              { uid: true }
-            );
-            if (!partData) { console.log('[IMAP] ✗ fetchOne returned null'); continue; }
-
-            const bpMap = (partData as unknown as { bodyParts?: Map<string, Buffer> }).bodyParts;
-            if (!bpMap) { console.log('[IMAP] ✗ bodyParts map missing'); continue; }
-
-            const buf = bpMap.get(part.part);
-            if (!buf || buf.length === 0) { console.log('[IMAP] ✗ buffer empty'); continue; }
-
-            console.log(`[IMAP] ✓ Downloaded ${buf.length} bytes — uploading to storage...`);
-
-            const attachmentId = crypto.randomUUID();
-            const storagePath = `${userId}/${attachmentId}/${safeFilename || 'attachment.bin'}`;
-
-            const { error: uploadError } = await supabase.storage
-              .from('email-attachments')
-              .upload(storagePath, buf, {
-                contentType: part.type || 'application/octet-stream',
-                upsert: false,
-              });
-
-            if (uploadError) {
-              console.error(`[IMAP] ✗ Storage upload failed for "${filename}":`, uploadError.message);
-              continue;
-            }
-            console.log(`[IMAP] ✓ Uploaded to storage: ${storagePath}`);
+            console.log(`[IMAP] 7/7 saving metadata for "${filename}" (part=${part.part} type=${part.type})`);
 
             const { error: insertError } = await supabase
               .from('email_attachments')
               .insert({
-                id: attachmentId,
+                id: crypto.randomUUID(),
                 user_id: userId,
                 account_id: accountId,
                 email_subject: message.envelope?.subject || null,
@@ -220,15 +195,18 @@ export async function syncEmailAccount(
                 email_date: message.envelope?.date?.toISOString() || null,
                 email_message_id: messageId,
                 filename,
-                file_size: buf.length,
+                file_size: (part as unknown as { size?: number }).size || null,
                 mime_type: part.type || null,
-                storage_path: storagePath,
+                storage_path: null,
+                status: 'pending',
+                imap_uid: message.uid,
+                imap_part: part.part,
               });
 
             if (insertError) {
               console.error(`[IMAP] ✗ DB insert failed for "${filename}":`, insertError.message);
             } else {
-              console.log(`[IMAP] ✓ Saved to DB: "${filename}"`);
+              console.log(`[IMAP] ✓ Metadata saved: "${filename}"`);
               newAttachments++;
             }
           }

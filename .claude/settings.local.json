@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"/c/Users/mariy/Documents/Projects/Invoice Extractor/invoice-extractor\" && npx tsc --noEmit 2>&1)",
+      "Bash(cd \"/c/Users/mariy/Documents/Projects/Invoice Extractor/invoice-extractor\" && git add \"src/app/\\(dashboard\\)/email/page.tsx\" && git commit -m \"$\\(cat <<'EOF'\nSimplify email account setup: provider wizard instead of technical form\n\n- Step 1: choose provider \\(Gmail, Abv.bg, Mail.bg, Outlook, Yahoo, Друг\\)\n- Step 2: email + password only \\(IMAP settings auto-filled\\)\n- Gmail: App Password guide with direct link and 3-step instructions\n- Abv.bg: activation tip\n- \"Друг\": shows IMAP host/port fields only when needed\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\nEOF\n\\)\" && git push origin main 2>&1)",
+      "Bash(cd:*)",
+      "Bash(npx shadcn@latest:*)",
+      "mcp__notion__API-retrieve-a-database",
+      "mcp__notion__API-post-search",
+      "mcp__notion__API-get-block-children",
+      "mcp__notion__API-post-page"
+    ]
+  }
+}

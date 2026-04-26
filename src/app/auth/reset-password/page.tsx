@@ -14,8 +14,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { KeyRound } from "lucide-react";
+import { useLocale } from "@/lib/i18n/context";
 
 export default function ResetPasswordPage() {
+  const { t } = useLocale();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -29,12 +31,12 @@ export default function ResetPasswordPage() {
     setError("");
 
     if (password.length < 6) {
-      setError("Паролата трябва да е поне 6 символа.");
+      setError(t.auth.passwordMinLength);
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Паролите не съвпадат.");
+      setError(t.auth.passwordMismatch);
       return;
     }
 
@@ -58,18 +60,18 @@ export default function ResetPasswordPage() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
             <KeyRound className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Нова парола</CardTitle>
-          <CardDescription>Въведете новата си парола</CardDescription>
+          <CardTitle className="text-2xl">{t.auth.newPassword}</CardTitle>
+          <CardDescription>{t.auth.newPasswordDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           {success ? (
             <div className="text-center text-sm text-green-500">
-              Паролата е сменена успешно! Пренасочване...
+              {t.auth.passwordChanged}
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="password">Нова парола</Label>
+                <Label htmlFor="password">{t.auth.newPasswordLabel}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -81,7 +83,7 @@ export default function ResetPasswordPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Потвърди паролата</Label>
+                <Label htmlFor="confirmPassword">{t.auth.confirmPassword}</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
@@ -96,7 +98,7 @@ export default function ResetPasswordPage() {
                 <p className="text-sm text-destructive">{error}</p>
               )}
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Запазване..." : "Смени паролата"}
+                {loading ? t.common.saving : t.auth.changePassword}
               </Button>
             </form>
           )}

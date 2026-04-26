@@ -17,15 +17,9 @@ import {
   FolderOpen,
 } from "lucide-react";
 import type { Subscription } from "@/types";
+import { useLocale } from "@/lib/i18n/context";
 
 const ADMIN_EMAIL = "slavkirov@abv.bg";
-
-const WHITELIST_PERIODS = [
-  { label: "1 месец", months: 1 },
-  { label: "3 месеца", months: 3 },
-  { label: "6 месеца", months: 6 },
-  { label: "1 година", months: 12 },
-];
 
 interface UserWithSub {
   id: string;
@@ -49,6 +43,7 @@ interface WhitelistEntry {
 }
 
 export default function AdminPage() {
+  const { t, locale } = useLocale();
   const [users, setUsers] = useState<UserWithSub[]>([]);
   const [whitelist, setWhitelist] = useState<WhitelistEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -183,12 +178,19 @@ export default function AdminPage() {
     );
   }
 
+  const WHITELIST_PERIODS = [
+    { label: t.admin.period1m, months: 1 },
+    { label: t.admin.period3m, months: 3 },
+    { label: t.admin.period6m, months: 6 },
+    { label: t.admin.period1y, months: 12 },
+  ];
+
   const statusLabel: Record<string, string> = {
-    active: "Активен",
-    trialing: "Пробен период",
-    past_due: "Просрочен",
-    canceled: "Отказан",
-    canceling: "Отменя се",
+    active: t.admin.active,
+    trialing: t.admin.trial,
+    past_due: t.admin.pastDue,
+    canceled: t.admin.canceled,
+    canceling: t.admin.canceling,
   };
 
   const statusColor: Record<string, string> = {
@@ -213,9 +215,9 @@ export default function AdminPage() {
       <div className="flex items-center gap-3">
         <Shield className="h-8 w-8 text-violet-400" />
         <div>
-          <h1 className="text-2xl font-bold">Админ панел</h1>
+          <h1 className="text-2xl font-bold">{t.admin.title}</h1>
           <p className="text-sm text-muted-foreground">
-            Управление на потребители и достъп
+            {t.admin.subtitle}
           </p>
         </div>
       </div>
@@ -224,7 +226,7 @@ export default function AdminPage() {
       <div className="space-y-4">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <UserCheck className="h-5 w-5 text-amber-400" />
-          Бета тестери
+          {t.admin.betaTesters}
         </h2>
 
         {/* Add beta tester form */}
@@ -232,7 +234,7 @@ export default function AdminPage() {
           <div className="flex items-end gap-3">
             <div className="flex-1">
               <label className="block text-xs font-medium text-muted-foreground mb-1">
-                Имейл
+                {t.admin.emailLabel}
               </label>
               <input
                 type="email"
@@ -245,7 +247,7 @@ export default function AdminPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
-                Период
+                {t.admin.period}
               </label>
               <select
                 value={newMonths}
@@ -269,7 +271,7 @@ export default function AdminPage() {
               ) : (
                 <Plus className="h-4 w-4" />
               )}
-              Добави
+              {t.admin.addButton}
             </button>
           </div>
         </div>
@@ -282,7 +284,7 @@ export default function AdminPage() {
         ) : whitelist.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
             <AlertCircle className="h-8 w-8 mb-2" />
-            <p className="text-sm">Няма добавени бета тестери</p>
+            <p className="text-sm">{t.admin.noBetaTesters}</p>
           </div>
         ) : (
           <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -290,19 +292,19 @@ export default function AdminPage() {
               <thead>
                 <tr className="border-b border-border bg-muted/50">
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                    Имейл
+                    {t.admin.emailLabel}
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                    Статус
+                    {t.common.status}
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                    Използване
+                    {t.admin.usage}
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                    Изтича
+                    {t.admin.expires}
                   </th>
                   <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">
-                    Действия
+                    {t.common.actions}
                   </th>
                 </tr>
               </thead>
@@ -328,11 +330,11 @@ export default function AdminPage() {
                         {entry.registered ? (
                           <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium text-green-400 bg-green-400/10">
                             <UserCheck className="h-3 w-3" />
-                            Регистриран
+                            {t.admin.registered}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium text-muted-foreground bg-muted">
-                            Очаква регистрация
+                            {t.admin.awaitingRegistration}
                           </span>
                         )}
                       </td>
@@ -341,11 +343,11 @@ export default function AdminPage() {
                           <div className="flex items-center gap-3">
                             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                               <FolderOpen className="h-3 w-3" />
-                              {entry.protocols_count} протокола
+                              {entry.protocols_count} {t.admin.protocolCount}
                             </span>
                             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                               <FileText className="h-3 w-3" />
-                              {entry.invoices_count} фактури
+                              {entry.invoices_count} {t.admin.invoiceCount}
                             </span>
                           </div>
                         ) : (
@@ -363,12 +365,12 @@ export default function AdminPage() {
                           >
                             <Clock className="h-3 w-3" />
                             {isExpired
-                              ? "Изтекъл"
-                              : `${remaining} дни`}
+                              ? t.common.expired
+                              : `${remaining} ${t.admin.daysRemaining}`}
                           </span>
                         ) : (
                           <span className="text-xs text-muted-foreground">
-                            Без срок
+                            {t.common.noExpiry}
                           </span>
                         )}
                       </td>
@@ -381,7 +383,7 @@ export default function AdminPage() {
                             className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
-                            Премахни
+                            {t.common.remove}
                           </button>
                         )}
                       </td>
@@ -396,7 +398,7 @@ export default function AdminPage() {
 
       {/* All Users Section */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Всички потребители</h2>
+        <h2 className="text-lg font-semibold">{t.admin.allUsers}</h2>
 
         {loading ? (
           <div className="flex items-center justify-center h-64">
@@ -405,7 +407,7 @@ export default function AdminPage() {
         ) : users.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
             <AlertCircle className="h-12 w-12 mb-4" />
-            <p>Няма регистрирани потребители</p>
+            <p>{t.admin.noUsers}</p>
           </div>
         ) : (
           <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -413,16 +415,16 @@ export default function AdminPage() {
               <thead>
                 <tr className="border-b border-border bg-muted/50">
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                    Имейл
+                    {t.admin.emailLabel}
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                    Регистрация
+                    {t.admin.registration}
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                    Статус
+                    {t.common.status}
                   </th>
                   <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">
-                    Действия
+                    {t.common.actions}
                   </th>
                 </tr>
               </thead>
@@ -453,7 +455,7 @@ export default function AdminPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">
-                        {new Date(user.created_at).toLocaleDateString("bg-BG")}
+                        {new Date(user.created_at).toLocaleDateString(locale === "bg" ? "bg-BG" : "en-US")}
                       </td>
                       <td className="px-4 py-3 text-sm">
                         {sub && isActive ? (
@@ -478,8 +480,8 @@ export default function AdminPage() {
                               <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                                 <Clock className="h-3 w-3" />
                                 {remaining > 0
-                                  ? `${remaining} дни остават`
-                                  : "Изтекъл"}
+                                  ? `${remaining} ${t.admin.daysRemaining}`
+                                  : t.common.expired}
                               </span>
                             )}
                           </div>
@@ -491,7 +493,7 @@ export default function AdminPage() {
                           </span>
                         ) : (
                           <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-muted-foreground bg-muted">
-                            Няма абонамент
+                            {t.admin.noSubscription}
                           </span>
                         )}
                       </td>
@@ -501,7 +503,7 @@ export default function AdminPage() {
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : user.email === ADMIN_EMAIL ? (
                             <span className="text-xs text-muted-foreground">
-                              Админ
+                              {t.admin.adminBadge}
                             </span>
                           ) : isActive ? (
                             <button
@@ -509,7 +511,7 @@ export default function AdminPage() {
                               className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
                             >
                               <UserX className="h-3.5 w-3.5" />
-                              Премахни
+                              {t.common.remove}
                             </button>
                           ) : (
                             <>

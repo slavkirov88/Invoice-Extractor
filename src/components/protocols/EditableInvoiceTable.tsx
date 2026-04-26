@@ -19,11 +19,12 @@ import {
 import { Trash2, Plus } from "lucide-react";
 import { format } from "date-fns";
 import type { Invoice } from "@/types";
+import { useLocale } from "@/lib/i18n/context";
 
 export interface InvoiceDraft {
   id?: string;           // undefined = new row not yet saved
   _clientId: string;     // stable key for React rendering
-  section: "A" | "B";
+  section: "A" | "B" | "commission";
   sequence_number: number;
   document_type: string;
   document_number: string;
@@ -36,7 +37,7 @@ export interface InvoiceDraft {
 
 interface EditableInvoiceTableProps {
   title: string;
-  section: "A" | "B";
+  section: "A" | "B" | "commission";
   invoices: Invoice[];
   isEditing: boolean;
   showVatRate?: boolean;
@@ -53,6 +54,7 @@ export function EditableInvoiceTable({
   drafts,
   onDraftsChange,
 }: EditableInvoiceTableProps) {
+  const { t } = useLocale();
   void invoices; // accepted for reference/type information; parent converts to drafts
   const visibleDrafts = drafts.filter((d) => !d._deleted);
   const total = visibleDrafts.reduce(
@@ -112,7 +114,7 @@ export function EditableInvoiceTable({
         _clientId: crypto.randomUUID(),
         section,
         sequence_number: visibleDrafts.length + 1,
-        document_type: "Фактура",
+        document_type: t.common.invoice,
         document_number: "",
         issue_date: today,
         counterparty_vat_id: "",
@@ -132,21 +134,21 @@ export function EditableInvoiceTable({
         <CardContent>
           {visibleDrafts.length === 0 ? (
             <p className="py-4 text-center text-muted-foreground">
-              Няма добавени фактури
+              {t.invoiceTable.noInvoices}
             </p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-16">№</TableHead>
-                  <TableHead>Вид документ</TableHead>
-                  <TableHead>№ на документа</TableHead>
-                  <TableHead>Дата на издаване</TableHead>
-                  <TableHead>ИД на контрагента</TableHead>
+                  <TableHead className="w-16">{t.invoiceTable.seqNumber}</TableHead>
+                  <TableHead>{t.invoiceTable.documentType}</TableHead>
+                  <TableHead>{t.invoiceTable.documentNumber}</TableHead>
+                  <TableHead>{t.invoiceTable.issueDate}</TableHead>
+                  <TableHead>{t.invoiceTable.counterpartyId}</TableHead>
                   {showVatRate && (
-                    <TableHead className="text-center">ДДС ставка</TableHead>
+                    <TableHead className="text-center">{t.invoiceTable.vatRate}</TableHead>
                   )}
-                  <TableHead className="text-right">Стойност EUR</TableHead>
+                  <TableHead className="text-right">{t.invoiceTable.amountEUR}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -175,8 +177,7 @@ export function EditableInvoiceTable({
                 ))}
                 <TableRow className="font-bold">
                   <TableCell colSpan={colSpan}>
-                    Общ размер на{" "}
-                    {section === "A" ? "получените" : "платените"} суми
+                    {section === "A" ? t.invoiceTable.totalReceived : section === "commission" ? t.invoiceTable.totalCommission : t.invoiceTable.totalPaid}
                   </TableCell>
                   <TableCell className="text-right font-mono">
                     {total.toFixed(2)}
@@ -200,13 +201,13 @@ export function EditableInvoiceTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-10">№</TableHead>
-              <TableHead>Вид</TableHead>
-              <TableHead>№ документ</TableHead>
-              <TableHead>Дата</TableHead>
-              <TableHead>ИД контрагент</TableHead>
-              {showVatRate && <TableHead className="w-20">ДДС %</TableHead>}
-              <TableHead className="text-right w-28">Стойност</TableHead>
+              <TableHead className="w-10">{t.invoiceTable.seqNumber}</TableHead>
+              <TableHead>{t.invoiceTable.type}</TableHead>
+              <TableHead>{t.invoiceTable.docNumber}</TableHead>
+              <TableHead>{t.invoiceTable.date}</TableHead>
+              <TableHead>{t.invoiceTable.counterparty}</TableHead>
+              {showVatRate && <TableHead className="w-20">{t.invoiceTable.vatPercent}</TableHead>}
+              <TableHead className="text-right w-28">{t.invoiceTable.amount}</TableHead>
               <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>
@@ -296,7 +297,7 @@ export function EditableInvoiceTable({
           className="w-full"
         >
           <Plus className="mr-2 h-4 w-4" />
-          Добави ред
+          {t.invoiceTable.addRow}
         </Button>
       </CardContent>
     </Card>

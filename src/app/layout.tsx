@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
+import { Analytics } from "@vercel/analytics/next";
+import { LocaleProvider } from "@/lib/i18n/context";
+import { getLocaleFromCookies } from "@/lib/i18n";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -91,19 +94,24 @@ export const metadata: Metadata = {
   category: "business",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocaleFromCookies();
+
   return (
-    <html lang="bg" className="dark">
+    <html lang={locale} className="dark">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <TooltipProvider>
-          {children}
+          <LocaleProvider initialLocale={locale}>
+            {children}
+          </LocaleProvider>
           <Toaster />
+          <Analytics />
         </TooltipProvider>
       </body>
     </html>

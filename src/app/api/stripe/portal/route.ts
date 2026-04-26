@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe/config";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
@@ -13,7 +12,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get the customer ID from subscriptions table
     const { data: subscription } = await supabase
       .from("subscriptions")
       .select("stripe_customer_id")
@@ -27,16 +25,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const session = await stripe.billingPortal.sessions.create({
+    const params = new URLSearchParams({
       customer: subscription.stripe_customer_id,
       return_url: `${request.nextUrl.origin}/settings`,
     });
 
-    return NextResponse.json({ url: session.url });
+    const res = await fetch("https://api.stripe.com/v1/billing_portal/sessions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: params.toString(),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: "Failed to create portal session", detail: data?.error?.message },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ url: data.url });
   } catch (error) {
-    console.error("Stripe portal error:", error);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Stripe portal error:", message);
     return NextResponse.json(
-      { error: "Failed to create portal session" },
+      { error: "Failed to create portal session", detail: message },
       { status: 500 }
     );
   }
