@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TravelInvoices
 
-## Getting Started
+Production SaaS for Bulgarian tourism agencies to manage VAT margin protocols for travel services. Upload PDF invoices, get AI-extracted structured data, and generate compliant VAT margin reports.
 
-First, run the development server:
+**Live:** [travelinvoices.com](https://www.travelinvoices.com)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## What it does
+
+Bulgarian tour operators are required by law (ЗДДС) to maintain VAT margin protocols for travel services — manually inputting hundreds of supplier invoices per month into spreadsheets. This app automates the workflow:
+
+1. Drag-and-drop a PDF supplier invoice
+2. AI extracts document number, date, amount, supplier VAT ID
+3. Invoice is classified (income / expense / commission) and assigned to a protocol
+4. VAT margin is calculated automatically (Section A revenue minus Section B costs)
+5. Export to Excel or PDF for accounting submission
+
+---
+
+## Tech Stack
+
+- **Frontend:** Next.js 16 (App Router), React 19, TypeScript 5
+- **Styling:** TailwindCSS 4 + shadcn/ui (dark theme by default)
+- **Backend:** Supabase (PostgreSQL + Auth + Storage + RLS)
+- **AI:** Mistral API for PDF data extraction
+- **Payments:** Stripe (subscription tiers + trial flow)
+- **Email:** Resend (transactional)
+- **Deployment:** Vercel (frontend) + Supabase Edge (background workers)
+- **i18n:** next-intl (Bulgarian + English)
+
+---
+
+## Architecture
+
+```
+src/
+├── app/
+│   ├── (dashboard)/         # Authenticated routes
+│   │   ├── protocols/       # CRUD + detail views
+│   │   └── invoices/        # Upload + categorize
+│   └── api/                 # Stripe webhooks, AI extraction
+├── components/
+│   ├── protocols/           # ProtocolList, VatCalculation, MarginReport
+│   ├── invoices/            # InvoiceUpload, InvoiceTypeSelector
+│   └── ui/                  # shadcn primitives
+├── lib/
+│   ├── supabase/            # Client / server / middleware
+│   ├── mistral/             # extract-invoice.ts
+│   └── utils/               # vat-calculator, excel-export, pdf-export
+└── types/                   # Database types from Supabase
+
+imap-worker/                  # Background worker for email-based invoice ingestion
+supabase/                     # Migrations, RLS policies, edge functions
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Data Model (key tables)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**`protocols`** — Each protocol represents a VAT reporting period for a destination
+- `protocol_number` (serial), `tax_event_date`, `destination`, `protocol_type` (standard / commission)
 
-## Learn More
+**`invoices`** — Individual invoices grouped under protocols
+- `protocol_id`, `section` (A income / B expense), `document_number`, `issue_date`, `amount`, `counterparty_vat_id`, `invoice_category`
 
-To learn more about Next.js, take a look at the following resources:
+**Row-level security**: every table is RLS-locked to `auth.uid()`. No cross-tenant data leaks possible.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Key features implemented
 
-## Deploy on Vercel
+- Social login (Google + Apple OAuth via Supabase)
+- AI extraction from PDF with confidence-scored fallback to manual entry
+- Multi-tier Stripe subscriptions with trial flow + payment-method-required-on-trial
+- Automated VAT margin calculation (Section B revenue − Section A cost, gross-up to tax base)
+- Excel export with Bulgarian tax-authority-compliant format
+- PDF protocol generation
+- IMAP worker for inbox-based invoice ingestion (suppliers email invoices, system parses and files them)
+- Bulgarian + English UI
+- Legal pages (Terms, Privacy, Cookies) and company info compliant with Bulgarian commerce law
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Status
+
+Live and in production with paying Bulgarian tourism agencies. Active development.
+
+---
+
+## License
+
+Proprietary. Code shown publicly for portfolio review purposes.
