@@ -41,3 +41,6 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# MCP config with real tokens (use .mcp.json.example as template)
+.mcp.json
