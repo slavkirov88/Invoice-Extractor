@@ -12,7 +12,7 @@ interface Message {
 const INITIAL_MESSAGE: Message = {
   role: "assistant",
   content:
-    "Здравейте! Имате въпрос за TravelInvoices? Питайте за цени, функции или как работи системата — тук съм да помогна.",
+    "Здравейте! Имате въпрос за TravelInvoices? Питайте за цени, функции или как работи системата. Тук съм да помогна.",
 };
 
 export function ChatBot() {
