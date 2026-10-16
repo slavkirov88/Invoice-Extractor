@@ -299,6 +299,19 @@ function HeroSection() {
           </span>
         </motion.div>
 
+        {/* Verified by accountants badge */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.0 }}
+          className="mt-6 flex justify-center"
+        >
+          <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-gradient-to-r from-amber-400/15 to-yellow-500/10 px-4 py-1.5 text-xs sm:text-sm font-medium text-amber-300 shadow-lg shadow-amber-500/10">
+            <BadgeCheck className="h-4 w-4 text-amber-400 shrink-0" />
+            Изчисленията са проверени от практикуващи счетоводители
+          </span>
+        </motion.div>
+
         {/* Hero image / app preview */}
         <motion.div
           initial={{ opacity: 0, y: 60 }}
@@ -895,6 +908,10 @@ function PricingSection() {
             <span className="flex items-center gap-2">
               <BadgeCheck className="h-4 w-4" />
               Откажете се по всяко време
+            </span>
+            <span className="flex items-center gap-2 text-amber-300">
+              <BadgeCheck className="h-4 w-4 text-amber-400" />
+              Проверено от практикуващи счетоводители
             </span>
           </div>
         </ScrollReveal>
