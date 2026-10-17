@@ -75,16 +75,22 @@ export async function POST(request: NextRequest) {
       if (userId) {
         const priceId = subscription.items.data[0]?.price?.id ?? "";
         const plan = getPlan(priceId);
-        const cancelAtPeriodEnd = subscription.cancel_at_period_end;
-        const status = cancelAtPeriodEnd ? "canceling" : subscription.status;
-        const periodEnd = subscription.current_period_end;
+        // Customer portal schedules cancellation via cancel_at (cancel_at_period_end stays false)
+        const isCanceling = subscription.cancel_at_period_end || subscription.cancel_at != null;
+        const status = isCanceling ? "canceling" : subscription.status;
+        // API versions since 2025-03-31 (basil) moved the period to the subscription item
+        const periodEnd =
+          (subscription.items.data[0] as { current_period_end?: number } | undefined)
+            ?.current_period_end ?? subscription.current_period_end;
 
         const { error } = await supabase
           .from("subscriptions")
           .update({
             status,
             plan,
-            current_period_end: new Date(periodEnd * 1000).toISOString(),
+            ...(periodEnd
+              ? { current_period_end: new Date(periodEnd * 1000).toISOString() }
+              : {}),
           })
           .eq("user_id", userId);
         if (error) console.error("customer.subscription.updated error:", error);
